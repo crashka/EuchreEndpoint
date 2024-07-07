@@ -27,6 +27,7 @@ import org.springframework.http.HttpStatus;
 
 // status for POST/PATCH notification, or status of an object
 class Status {
+
     public static final String OK       = "ok";
     public static final String NEW      = "new";
     public static final String UPDATE   = "update";
@@ -36,28 +37,30 @@ class Status {
 
 // ========== Endpoint Classes ========== //
 
-class EPSession {
+class EpSession {
+
     String token;
     String status;
 
-    ArrayList<EPGame> gameList = new ArrayList<EPGame>();
+    ArrayList<EpGame> gameList = new ArrayList<EpGame>();
 
-    public EPSession(String token, String status) {
+    public EpSession(String token, String status) {
         this.token  = token;
         this.status = status;
     }
 }
 
-class EPGame {
+class EpGame {
+
     String token;
     int    nGame;
     String status;
 
     Game   game;
 
-    ArrayList<EPDeal> dealList = new ArrayList<EPDeal>();
+    ArrayList<EpDeal> dealList = new ArrayList<EpDeal>();
 
-    public EPGame(GameStatus game, String status) {
+    public EpGame(GameStatus game, String status) {
         this.token  = game.token();
         this.nGame  = game.nGame();
         this.status = status;
@@ -93,7 +96,8 @@ class EPGame {
  *  -   2 : hearts
  *  -   3 : spades
  */
-class EPDeal {
+class EpDeal {
+
     String token;
     int    nGame;
     int    nDeal;
@@ -103,7 +107,7 @@ class EPDeal {
 
     Deal   deal;
 
-    public EPDeal(DealInfo deal, String status) {
+    public EpDeal(DealInfo deal, String status) {
         this.token  = deal.token();
         this.nGame  = deal.nGame();
         this.nDeal  = deal.nDeal();
@@ -113,25 +117,12 @@ class EPDeal {
     }
 }
 
-/**
- *  Representation of suits:
- *  - 0: clubs
- *  - 1: diamonds
- *  - 2: hearts
- *  - 3: spades
- */
-class EPBid {
-}
-
-class EPPlay {
-}
-
 // ========== Data Structures ========== //
 
 // generic response
-record GenStatus(String status, String info) {
+record EpStatus(String status, String info) {
 
-    public GenStatus(String status) {
+    public EpStatus(String status) {
         this(status, null);
     }
 }
@@ -143,7 +134,7 @@ record SessionStatus(String token, String status, String info) {
         this(token, status, null);
     }
 
-    public SessionStatus(EPSession sess) {
+    public SessionStatus(EpSession sess) {
         this(sess.token, sess.status);
     }
 }
@@ -175,7 +166,7 @@ record GameStatus(String token, int nGame, String status, String info) {
         this(token, nGame, status, null);
     }
 
-    public GameStatus(EPGame game) {
+    public GameStatus(EpGame game) {
         this(game.token, game.nGame, game.status);
     }
 }
@@ -191,7 +182,7 @@ record DealStatus(String token, int nGame, int nDeal, String status, String info
         this(token, nGame, nDeal, status, null);
     }
 
-    public DealStatus(EPDeal deal) {
+    public DealStatus(EpDeal deal) {
         this(deal.token, deal.nGame, deal.nDeal, deal.status);
     }
 }
@@ -201,7 +192,7 @@ record DealStatus(String token, int nGame, int nDeal, String status, String info
 @RestController
 public class EndpointController {
 
-    HashMap<String, EPSession> sessionMap = new HashMap<String, EPSession>();
+    HashMap<String, EpSession> sessionMap = new HashMap<String, EpSession>();
 
     // ---------- Session ---------- //
 
@@ -212,7 +203,7 @@ public class EndpointController {
         assert !sessionMap.containsKey(req.token()) : "token exists: " + req.token();
 
         // create/add new session
-        EPSession sess = new EPSession(req.token(), Status.ACTIVE);
+        EpSession sess = new EpSession(req.token(), Status.ACTIVE);
         sessionMap.put(req.token(), sess);
         return new SessionProtocol();
     }
@@ -224,7 +215,7 @@ public class EndpointController {
         assert req.status().equals(Status.COMPLETE) : "bad req status: " + req.status();
 
         // remove and update status, if complete
-        EPSession sess = sessionMap.remove(req.token());
+        EpSession sess = sessionMap.remove(req.token());
         sess.status = req.status();
         return new SessionStatus(sess);
     }
@@ -235,7 +226,7 @@ public class EndpointController {
     public GameStatus postGame(@RequestBody GameStatus req) {
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
-        EPSession sess = sessionMap.get(req.token());
+        EpSession sess = sessionMap.get(req.token());
         assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
 
         // check request parameters
@@ -243,7 +234,7 @@ public class EndpointController {
         assert req.nGame() == sess.gameList.size() : "bad nGame value: " + req.nGame();
 
         // create/add new game
-        EPGame game = new EPGame(req, Status.ACTIVE);
+        EpGame game = new EpGame(req, Status.ACTIVE);
         sess.gameList.add(game);
         return new GameStatus(game);
     }
@@ -252,7 +243,7 @@ public class EndpointController {
     public GameStatus patchGame(@RequestBody GameStatus req) {
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
-        EPSession sess = sessionMap.get(req.token());
+        EpSession sess = sessionMap.get(req.token());
         assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
 
         // check request parameters
@@ -264,7 +255,7 @@ public class EndpointController {
             assert false : "bad req status: " + req.status();
         }
         assert req.nGame() == sess.gameList.size() - 1 : "bad nGame value: " + req.nGame();
-        EPGame game = sess.gameList.get(req.nGame());
+        EpGame game = sess.gameList.get(req.nGame());
         // update stats/info here (leave status alone)!!!
 
         // clean up and update status, if complete
@@ -282,12 +273,12 @@ public class EndpointController {
     public DealStatus postDeal(@RequestBody DealInfo req) {
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
-        EPSession sess = sessionMap.get(req.token());
+        EpSession sess = sessionMap.get(req.token());
         assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
 
         // get game, check status
         assert req.nGame() == sess.gameList.size() - 1 : "bad nGame value: " + req.nGame();
-        EPGame game = sess.gameList.get(req.nGame());
+        EpGame game = sess.gameList.get(req.nGame());
         assert game.status.equals(Status.ACTIVE) : "bad game status: " + req.status();
 
         // check request parameters
@@ -295,7 +286,7 @@ public class EndpointController {
         assert req.nDeal() == game.dealList.size() : "bad nDeal value: " + req.nDeal();
 
         // create/add new deal
-        EPDeal deal = new EPDeal(req, Status.ACTIVE);
+        EpDeal deal = new EpDeal(req, Status.ACTIVE);
         game.dealList.add(deal);
         return new DealStatus(deal);
     }
@@ -304,12 +295,12 @@ public class EndpointController {
     public DealStatus patchDeal(@RequestBody DealStatus req) {
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
-        EPSession sess = sessionMap.get(req.token());
+        EpSession sess = sessionMap.get(req.token());
         assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
 
         // get game, check status
         assert req.nGame() == sess.gameList.size() - 1 : "bad nGame value: " + req.nGame();
-        EPGame game = sess.gameList.get(req.nGame());
+        EpGame game = sess.gameList.get(req.nGame());
         assert game.status.equals(Status.ACTIVE) : "bad game status: " + req.status();
 
         // check request parameters
@@ -321,7 +312,7 @@ public class EndpointController {
             assert false : "bad req status: " + req.status();
         }
         assert req.nDeal() == game.dealList.size() - 1 : "bad nDeal value: " + req.nDeal();
-        EPDeal deal = game.dealList.get(req.nDeal());
+        EpDeal deal = game.dealList.get(req.nDeal());
         // update stats/info here (leave status alone)!!!
 
         // clean up and update status, if complete
@@ -336,48 +327,48 @@ public class EndpointController {
     // ---------- Bid ---------- //
 
     @GetMapping("/bid")
-    public GenStatus getBid() {
-        return new GenStatus(Status.OK);
+    public EpStatus getBid() {
+        return new EpStatus(Status.OK);
     }
 
     @PostMapping("/bid")
-    public GenStatus postBid() {
-        return new GenStatus(Status.OK);
+    public EpStatus postBid() {
+        return new EpStatus(Status.OK);
     }
 
     // ---------- Swap ---------- //
 
     @GetMapping("/swap")
-    public GenStatus getSwap() {
-        return new GenStatus(Status.OK);
+    public EpStatus getSwap() {
+        return new EpStatus(Status.OK);
     }
 
     @PostMapping("/swap")
-    public GenStatus postSwap() {
-        return new GenStatus(Status.OK);
+    public EpStatus postSwap() {
+        return new EpStatus(Status.OK);
     }
 
     // ---------- Defense ---------- //
 
     @GetMapping("/defense")
-    public GenStatus getDefense() {
-        return new GenStatus(Status.OK);
+    public EpStatus getDefense() {
+        return new EpStatus(Status.OK);
     }
 
     @PostMapping("/defense")
-    public GenStatus postDefense() {
-        return new GenStatus(Status.OK);
+    public EpStatus postDefense() {
+        return new EpStatus(Status.OK);
     }
 
     // ---------- Play ---------- //
 
     @GetMapping("/play")
-    public GenStatus getPlay() {
-        return new GenStatus(Status.OK);
+    public EpStatus getPlay() {
+        return new EpStatus(Status.OK);
     }
 
     @PostMapping("/play")
-    public GenStatus postPlay() {
-        return new GenStatus(Status.OK);
+    public EpStatus postPlay() {
+        return new EpStatus(Status.OK);
     }
 }
