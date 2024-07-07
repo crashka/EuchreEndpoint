@@ -12,7 +12,7 @@ between hands (i.e. cheating) on the server side.
 Note that sequential data (e.g. counters and lists) are all zero-based.  For UI/output
 interfaces, we may want to display "game number", "deal number", and "trick number" as
 N+1.  For other internal indexable things (e.g. card, position, suit, etc.), we will map
-to description, human-friendly representations.
+to descriptive, human-friendly representations.
 
 ### Open Issues ###
 
@@ -135,7 +135,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 **Response**
 
-- Suit - int (0-3) or -1 = pass
+- Suit - int (0-3), or -1 = pass
 - Alone - boolean
 
 ##### POST - Notification of a Bid #####
@@ -152,7 +152,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 **Response**
 
-- Suggested Suit - int (0-3) or -1 = pass
+- Suggested Suit - int (0-3), or -1 = pass
 - Suggested Alone - boolean
 
 #### Swap ####
@@ -165,6 +165,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 - Game - int (0-n)
 - Deal - int (0-n)
 - Position - int (0-3)
+- Swappable Cards - int[5] (0-23, or -1)
 
 **Response**
 
@@ -225,6 +226,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 - Trick - int (0-4)
 - Trick Seq - int (0-3)
 - Position (player) - int (0-3)
+- Playable Cards - int[5] (0-23, or -1)
 
 **Response**
 
