@@ -3,6 +3,7 @@ package game;
 import game.Game;
 import game.Deal;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
 
@@ -35,35 +36,61 @@ class Status {
     public static final String COMPLETE = "complete";
 }
 
+// hardwired protocol mapping for cards and suits
+class Protocol {
+
+    // 9C, 10C, JC, ..., 9D, 10D, JD, ..., QS, KS, AS
+    static final int[] cards = {3, 7, 11, 15, 19, 23,
+                                2, 6, 10, 14, 18, 22,
+                                1, 5,  9, 13, 17, 21,
+                                0, 4,  8, 12, 16, 20};
+    // Clubs, Diamonds, Hearts, Spades
+    static final int[] suits = {3, 2, 1, 0};
+
+    public int[] getCards() {
+        return cards;
+    }
+
+    public int[] getSuits() {
+        return suits;
+    }
+}
+
 // ========== Endpoint Classes ========== //
 
 class EpSession {
 
-    String token;
-    String status;
+    String   token;
+    String   status;
 
+    Protocol protocol = new Protocol();
     ArrayList<EpGame> gameList = new ArrayList<EpGame>();
 
-    public EpSession(String token, String status) {
-        this.token  = token;
-        this.status = status;
+    public EpSession(SessionInfo info, String status) {
+        this.token  = info.token();
+        this.status = status;  // ignore `info.status()`
     }
 }
 
 class EpGame {
 
     String token;
-    int    nGame;
+    int    gameNum;
     String status;
 
     Game   game;
-
     ArrayList<EpDeal> dealList = new ArrayList<EpDeal>();
 
-    public EpGame(GameStatus game, String status) {
-        this.token  = game.token();
-        this.nGame  = game.nGame();
-        this.status = status;
+    public EpGame(GameInfo info, String status) {
+        this.token   = info.token();
+        this.gameNum = info.gameNum();
+        this.status  = status;  // ignore `info.status()`
+    }
+
+    public EpGame(GameStatus stat, String status) {
+        this.token   = stat.token();
+        this.gameNum = stat.gameNum();
+        this.status  = status;  // ignore `stat.status()`
     }
 }
 
@@ -99,27 +126,27 @@ class EpGame {
 class EpDeal {
 
     String token;
-    int    nGame;
-    int    nDeal;
+    int    gameNum;
+    int    dealNum;
     String status;
     int[]  cards;
     int    pos;
 
     Deal   deal;
 
-    public EpDeal(DealInfo deal, String status) {
-        this.token  = deal.token();
-        this.nGame  = deal.nGame();
-        this.nDeal  = deal.nDeal();
-        this.status = status;
-        this.cards  = deal.cards();
-        this.pos    = deal.pos();
+    public EpDeal(DealInfo info, String status) {
+        this.token   = info.token();
+        this.gameNum = info.gameNum();
+        this.dealNum = info.dealNum();
+        this.status  = status;  // ignore `info.status()`
+        this.cards   = info.cards();
+        this.pos     = info.pos();
     }
 }
 
 // ========== Data Structures ========== //
 
-// generic response
+// Generic - POST/PATCH response
 record EpStatus(String status, String info) {
 
     public EpStatus(String status) {
@@ -127,7 +154,19 @@ record EpStatus(String status, String info) {
     }
 }
 
-// POST request, PATCH request
+// Session - POST request
+record SessionInfo(String token, String status) {
+}
+
+// Session - POST response
+record SessionProto(String token, String status, int[] cardsProto, int[] suitsProto) {
+
+    public SessionProto(EpSession sess) {
+        this(sess.token, sess.status, sess.protocol.getCards(), sess.protocol.getSuits());
+    }
+}
+
+// Session - PATCH request/response
 record SessionStatus(String token, String status, String info) {
 
     public SessionStatus(String token, String status) {
@@ -139,51 +178,67 @@ record SessionStatus(String token, String status, String info) {
     }
 }
 
-// POST response
-class SessionProtocol {
-
-    // 9C, 10C, JC, ..., 9D, 10D, JD, ..., QS, KS, AS
-    static final int[] cards = {3, 7, 11, 15, 19, 23,
-                                2, 6, 10, 14, 18, 22,
-                                1, 5,  9, 13, 17, 21,
-                                0, 4,  8, 12, 16, 20};
-    // Clubs, Diamonds, Hearts, Spades
-    static final int[] suits = {3, 2, 1, 0};
-
-    public int[] getCards() {
-        return cards;
-    }
-
-    public int[] getSuits() {
-        return suits;
-    }
+// Game - POST request
+record GameInfo(String token, int gameNum, String status) {
 }
 
-// POST request, PATCH request
-record GameStatus(String token, int nGame, String status, String info) {
+// Game - POST response, PATCH request/response
+record GameStatus(String token, int gameNum, String status, String info) {
 
-    public GameStatus(String token, int nGame, String status) {
-        this(token, nGame, status, null);
+    public GameStatus(String token, int gameNum, String status) {
+        this(token, gameNum, status, null);
     }
 
     public GameStatus(EpGame game) {
-        this(game.token, game.nGame, game.status);
+        this(game.token, game.gameNum, game.status);
     }
 }
 
-// POST request
-record DealInfo(String token, int nGame, int nDeal, String status, int[] cards, int pos) {
+// Deal - POST request
+record DealInfo(String token, int gameNum, int dealNum, String status, int[] cards, int pos) {
 }
 
-// PATCH request
-record DealStatus(String token, int nGame, int nDeal, String status, String info) {
+// Deal - POST response, PATCH request/response
+record DealStatus(String token, int gameNum, int dealNum, String status, String info) {
 
-    public DealStatus(String token, int nGame, int nDeal, String status) {
-        this(token, nGame, nDeal, status, null);
+    public DealStatus(String token, int gameNum, int dealNum, String status) {
+        this(token, gameNum, dealNum, status, null);
     }
 
     public DealStatus(EpDeal deal) {
-        this(deal.token, deal.nGame, deal.nDeal, deal.status);
+        this(deal.token, deal.gameNum, deal.dealNum, deal.status);
+    }
+}
+
+// Bid - GET response, POST request/response
+record BidInfo(String token, int gameNum, int dealNum, int round, int pos, int suit, boolean alone) {
+
+    public BidInfo(BidInfo bid, int suggSuit, boolean suggAlone) {
+        this(bid.token, bid.gameNum, bid.dealNum, bid.round, bid.pos, suggSuit, suggAlone);
+    }
+}
+
+// Swap - GET response, POST request/response
+record SwapInfo(String token, int gameNum, int dealNum, int pos, int card) {
+
+    public SwapInfo(SwapInfo swap, int suggCard) {
+        this(swap.token, swap.gameNum, swap.dealNum, swap.pos, suggCard);
+    }
+}
+
+// Defense - GET response, POST request/response
+record DefenseInfo(String token, int gameNum, int dealNum, int pos, boolean alone) {
+
+    public DefenseInfo(DefenseInfo def, boolean suggAlone) {
+        this(def.token, def.gameNum, def.dealNum, def.pos, suggAlone);
+    }
+}
+
+// Play - GET response, POST request/response
+record PlayInfo(String token, int gameNum, int dealNum, int trickNum, int trickSeq, int pos, int card) {
+
+    public PlayInfo(PlayInfo play, int suggCard) {
+        this(play.token, play.gameNum, play.dealNum, play.trickNum, play.trickSeq, play.pos, suggCard);
     }
 }
 
@@ -197,15 +252,15 @@ public class EndpointController {
     // ---------- Session ---------- //
 
     @PostMapping("/session")
-    public SessionProtocol postSession(@RequestBody SessionStatus req) {
+    public SessionProto postSession(@RequestBody SessionInfo req) {
         // check request parameters
         assert req.status().equals(Status.NEW) : "bad req status: " + req.status();
         assert !sessionMap.containsKey(req.token()) : "token exists: " + req.token();
 
         // create/add new session
-        EpSession sess = new EpSession(req.token(), Status.ACTIVE);
+        EpSession sess = new EpSession(req, Status.ACTIVE);
         sessionMap.put(req.token(), sess);
-        return new SessionProtocol();
+        return new SessionProto(sess);
     }
 
     @PatchMapping("/session")
@@ -223,7 +278,7 @@ public class EndpointController {
     // ---------- Game ---------- //
 
     @PostMapping("/game")
-    public GameStatus postGame(@RequestBody GameStatus req) {
+    public GameStatus postGame(@RequestBody GameInfo req) {
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
         EpSession sess = sessionMap.get(req.token());
@@ -231,7 +286,7 @@ public class EndpointController {
 
         // check request parameters
         assert req.status().equals(Status.NEW) : "bad req status: " + req.status();
-        assert req.nGame() == sess.gameList.size() : "bad nGame value: " + req.nGame();
+        assert req.gameNum() == sess.gameList.size() : "bad gameNum value: " + req.gameNum();
 
         // create/add new game
         EpGame game = new EpGame(req, Status.ACTIVE);
@@ -254,8 +309,8 @@ public class EndpointController {
         default:
             assert false : "bad req status: " + req.status();
         }
-        assert req.nGame() == sess.gameList.size() - 1 : "bad nGame value: " + req.nGame();
-        EpGame game = sess.gameList.get(req.nGame());
+        assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
+        EpGame game = sess.gameList.get(req.gameNum());
         // update stats/info here (leave status alone)!!!
 
         // clean up and update status, if complete
@@ -277,13 +332,13 @@ public class EndpointController {
         assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
 
         // get game, check status
-        assert req.nGame() == sess.gameList.size() - 1 : "bad nGame value: " + req.nGame();
-        EpGame game = sess.gameList.get(req.nGame());
+        assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
+        EpGame game = sess.gameList.get(req.gameNum());
         assert game.status.equals(Status.ACTIVE) : "bad game status: " + req.status();
 
         // check request parameters
         assert req.status().equals(Status.NEW) : "bad req status: " + req.status();
-        assert req.nDeal() == game.dealList.size() : "bad nDeal value: " + req.nDeal();
+        assert req.dealNum() == game.dealList.size() : "bad dealNum value: " + req.dealNum();
 
         // create/add new deal
         EpDeal deal = new EpDeal(req, Status.ACTIVE);
@@ -299,8 +354,8 @@ public class EndpointController {
         assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
 
         // get game, check status
-        assert req.nGame() == sess.gameList.size() - 1 : "bad nGame value: " + req.nGame();
-        EpGame game = sess.gameList.get(req.nGame());
+        assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
+        EpGame game = sess.gameList.get(req.gameNum());
         assert game.status.equals(Status.ACTIVE) : "bad game status: " + req.status();
 
         // check request parameters
@@ -311,8 +366,8 @@ public class EndpointController {
         default:
             assert false : "bad req status: " + req.status();
         }
-        assert req.nDeal() == game.dealList.size() - 1 : "bad nDeal value: " + req.nDeal();
-        EpDeal deal = game.dealList.get(req.nDeal());
+        assert req.dealNum() == game.dealList.size() - 1 : "bad dealNum value: " + req.dealNum();
+        EpDeal deal = game.dealList.get(req.dealNum());
         // update stats/info here (leave status alone)!!!
 
         // clean up and update status, if complete
@@ -327,48 +382,75 @@ public class EndpointController {
     // ---------- Bid ---------- //
 
     @GetMapping("/bid")
-    public EpStatus getBid() {
-        return new EpStatus(Status.OK);
+    public BidInfo getBid(@RequestParam String token,
+                          @RequestParam int gameNum,
+                          @RequestParam int dealNum,
+                          @RequestParam int round,
+                          @RequestParam int pos) {
+        int suit = -1;
+        boolean alone = false;
+        return new BidInfo(token, gameNum, dealNum, round, pos, suit, alone);
     }
 
     @PostMapping("/bid")
-    public EpStatus postBid() {
-        return new EpStatus(Status.OK);
+    public BidInfo postBid(@RequestBody BidInfo req) {
+        int suggSuit = -1;
+        boolean suggAlone = false;
+        return new BidInfo(req, suggSuit, suggAlone);
     }
 
     // ---------- Swap ---------- //
 
     @GetMapping("/swap")
-    public EpStatus getSwap() {
-        return new EpStatus(Status.OK);
+    public SwapInfo getSwap(@RequestParam String token,
+                            @RequestParam int gameNum,
+                            @RequestParam int dealNum,
+                            @RequestParam int pos,
+                            @RequestParam List<Integer> swappableCards) {
+        int swapCard = -1;
+        return new SwapInfo(token, gameNum, dealNum, pos, swapCard);
     }
 
     @PostMapping("/swap")
-    public EpStatus postSwap() {
-        return new EpStatus(Status.OK);
+    public SwapInfo postSwap(@RequestBody SwapInfo req) {
+        int suggCard = -1;
+        return new SwapInfo(req, suggCard);
     }
 
     // ---------- Defense ---------- //
 
     @GetMapping("/defense")
-    public EpStatus getDefense() {
-        return new EpStatus(Status.OK);
+    public DefenseInfo getDefense(@RequestParam String token,
+                                  @RequestParam int gameNum,
+                                  @RequestParam int dealNum,
+                                  @RequestParam int pos) {
+        boolean alone = false;
+        return new DefenseInfo(token, gameNum, dealNum, pos, alone);
     }
 
     @PostMapping("/defense")
-    public EpStatus postDefense() {
-        return new EpStatus(Status.OK);
+    public DefenseInfo postDefense(@RequestBody DefenseInfo req) {
+        boolean suggAlone = false;
+        return new DefenseInfo(req, suggAlone);
     }
 
     // ---------- Play ---------- //
 
     @GetMapping("/play")
-    public EpStatus getPlay() {
-        return new EpStatus(Status.OK);
+    public PlayInfo getPlay(@RequestParam String token,
+                            @RequestParam int gameNum,
+                            @RequestParam int dealNum,
+                            @RequestParam int trickNum,
+                            @RequestParam int trickSeq,
+                            @RequestParam int pos,
+                            @RequestParam List<Integer> playableCards) {
+        int playCard = -1;
+        return new PlayInfo(token, gameNum, dealNum, trickNum, trickSeq, pos, playCard);
     }
 
     @PostMapping("/play")
-    public EpStatus postPlay() {
-        return new EpStatus(Status.OK);
+    public PlayInfo postPlay(@RequestBody PlayInfo req) {
+        int suggCard = -1;
+        return new PlayInfo(req, suggCard);
     }
 }
