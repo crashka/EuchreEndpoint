@@ -1,0 +1,1099 @@
+openapi: 3.0.3
+info:
+  title: Euchre Endpoint
+  description: >-
+    This is the remote interface for invocation of Java-based algorithms from
+    the `euchre-plt` tournament framework (see
+    [euchre-plt](https://github.com/crashka/euchre-plt)).  The server side only
+    plays hands for individual games; the client ("coordinator") side manages
+    the larger context of deals and accounting for matches, tournaments, etc.
+  license:
+    name: MIT License
+    url: https://opensource.org/license/mit
+  version: '0.5'
+tags:
+  - name: Session
+    description: >-
+      Managing a session (one or more games); client/coordinator determines the
+      end of the session
+  - name: Game
+    description: >-
+      Managing a game (multiple deals); client/coordinator determines the end of
+      the game
+  - name: Deal
+    description: >-
+      Managing a deal; client/coordinator will either request (GET) or notify
+      (POST) server of bids/plays for each position
+  - name: Bid
+    description: Request or notify server of a bid
+  - name: Swap
+    description: Request or notify server of a card swap (i.e. exchange for turn card)
+  - name: Defense
+    description: Request or notify server of a defense declaration (e.g. defend alone)
+  - name: Play
+    description: Request or notify server of a card play for the current hand
+paths:
+  /session:
+    post:
+      tags:
+        - Session
+      summary: Start a new session
+      description: Notification from the coordinator that a new session is starting
+      operationId: postSession
+      requestBody:
+        description: |-
+          `token` - contains the session ID (same for all calls within the session)\
+          `status` - must have a value of "**new**"
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionInfo'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation, local session created\
+            `token` - copied from request\
+            `status` - should be set to "**active**"\
+            `cards` - card representation (int[24]): 9C, 10C, JC, ... 9D, 10D,
+            JD, ... QS, KS, AS\
+            `suits` - suit representation (int[4]): Clubs, Diamonds, Hearts,
+            Spades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionProto'
+    patch:
+      tags:
+        - Session
+      summary: Update the status of a session
+      description: >-
+        Notification from the coordinator that the status of the session has
+        changed (currently only "**complete**" is supported)
+      operationId: patchSession
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `status` - indicates the new status, values:
+          - "**complete**" - session is complete, local resources may be
+          released
+
+          `info` - purely informational
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionStatus'
+        required: true
+      responses:
+        '200':
+          description: Successful operation, response is an echo of the request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatus'
+  /game:
+    post:
+      tags:
+        - Game
+      summary: Start a new game
+      description: Notification from the coordinator that a new game is starting
+      operationId: postGame
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `gameNum` - sequential game number within the session\
+          `status` - must have a value of "**new**"
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameInfo'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation, local game created\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `status` - should be set to "**active**"\
+            `info` - optional (ignored)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameStatus'
+    patch:
+      tags:
+        - Game
+      summary: Update the status of a game
+      description: >-
+        Notification from the coordinator that the status of the game has
+        changed (currently only "**complete**" is supported)
+      operationId: patchGame
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `status` - indicates the new status, values:
+          - "**complete**" - game is complete, local resources may be released
+
+          `info` - purely informational
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameComplete'
+        required: true
+      responses:
+        '200':
+          description: Successful operation, response is an echo of the request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameComplete'
+  /deal:
+    post:
+      tags:
+        - Deal
+      summary: Start a new deal
+      description: Notification from the coordinator that a new deal is starting
+      operationId: postDeal
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `gameNum` - sequential game number within the session (0-n)\
+          `dealNum` - sequential deal number within the game (0-n)\
+          `status` - must have a value of "**new**"\
+          `cards` - cards dealt (int[24]):
+          - 0-4 : Position 0 hand
+          - 5-9 : Position 1 hand
+          - 10-14: Position 2 hand
+          - 15-19: Position 3 hand (dealer)
+          - 20 : Turn card
+          - 21-23: Buries
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealInfo'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation, local deal created\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `status` - should be set to "**active**"\
+            `info` - optional (ignored)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealStatus'
+    patch:
+      tags:
+        - Deal
+      summary: Update the status of a deal
+      description: >-
+        Notification from the coordinator that the status of the deal has
+        changed (currently only "**complete**" is supported)
+      operationId: patchDeal
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `gameNum` - sequential game number within the session (0-n)\
+          `dealNum` - sequential deal number within the game (0-n)\
+          `status` - indicates the new status, values:
+          - "**complete**" - deal is complete, local resources may be released
+
+          `info` - purely informational
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealComplete'
+        required: true
+      responses:
+        '200':
+          description: Successful operation, response is an echo of the request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealComplete'
+  /bid:
+    get:
+      tags:
+        - Bid
+      summary: Request bid from server
+      description: >-
+        Note that multiple bids per round may be requested, for partners hosted on the
+        same server
+      operationId: getBid
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Session ID
+          schema:
+            $ref: '#/components/schemas/SessToken'
+        - name: gameNum
+          in: query
+          required: true
+          description: Game number (0-n)
+          schema:
+            type: integer
+            example: 10
+        - name: dealNum
+          in: query
+          required: true
+          description: Deal number (0-n) within the game
+          schema:
+            type: integer
+            example: 3
+        - name: round
+          in: query
+          required: true
+          description: Bidding round (0-1)
+          schema:
+            type: integer
+            example: 0
+        - name: pos
+          in: query
+          required: true
+          description: Bidding position (0-3, with 3 = dealer)
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: |-
+            Successful operation, bid declared\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `round` - copied from request\
+            `pos` - copied from request\
+            `suit` - suit declaration (0-3), or -1 = pass\
+            `alone` - declaration of going alone (true/false)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidInfo'
+    post:
+      tags:
+        - Bid
+      summary: Notify server of a bid
+      description: Notification from the coordinator of a remote bid
+      operationId: postBid
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `gameNum` - sequential game number within the session (0-n)\
+          `dealNum` - sequential deal number within the game (0-n)\
+          `round` - bidding round (0-1)\
+          `pos` - bidding position (0-3, with 3 = dealer)\
+          `suit` - suit declaration (0-3), or -1 = pass\
+          `alone` - declaration of going alone (true/false)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BidInfo'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation, bid was recorded locally\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `round` - copied from request\
+            `pos` - copied from request\
+            `suit` *[optional\*]* - ***suggested*** suit declaration (0-3), or -1
+            = pass; or null\
+            `alone` *[optional\*]* - ***suggested*** declaration of going alone
+            (true/false); or null\
+            \
+            \* Note that server may optionally specify suggested values for `suit`
+            and `alone` (or null values to indicate no suggestions)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidSugg'
+  /swap:
+    get:
+      tags:
+        - Swap
+      summary: Request swap from server
+      description: >-
+        Only called if server represents the dealer position for a first round bid
+        declaration (optionally called if partner declares a loner)
+      operationId: getSwap
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Session ID
+          schema:
+            $ref: '#/components/schemas/SessToken'
+        - name: gameNum
+          in: query
+          required: true
+          description: Game number (0-n)
+          schema:
+            type: integer
+            example: 10
+        - name: dealNum
+          in: query
+          required: true
+          description: Deal number (0-n) within the game
+          schema:
+            type: integer
+            example: 3
+        - name: declarerPos
+          in: query
+          required: true
+          description: Declarer position (0-3, with 3 = dealer)
+          schema:
+            type: integer
+            example: 1
+        - name: turnCard
+          in: query
+          required: true
+          description: Turn card (0-23), also determines trump suit
+          schema:
+            type: integer
+            example: 14
+        - name: swappableCards
+          in: query
+          required: true
+          description: Swappable cards - int[5] (0-23)
+          schema:
+            type: array
+            items:
+              type: integer
+            example: [2, 8, 11, 15, 21]
+      responses:
+        '200':
+          description: |-
+            Successful operation, bid declared\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `declarerPos` - copied from request\
+            `turnCard` - copied from request\
+            `swapCard` - card swapped (0-23) for turn card, or -1 = no swap
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapInfo'
+    post:
+      tags:
+        - Swap
+      summary: Notify server of a swap
+      description: >-
+        Notification from the coordinator of a swap by a remote dealer (note: this
+        is optionally posted, depending on whether coordinator wants to share all
+        hidden information with server)
+      operationId: postSwap
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `gameNum` - sequential game number within the session (0-n)\
+          `dealNum` - sequential deal number within the game (0-n)\
+          `declarerPos` - declarer position (0-3, with 3 = dealer)\
+          `turnCard` - turn card (0-23), also determines trump suit\
+          `swapCard` - card swapped (0-23) for turn card, or -1 = no swap
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwapInfo'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation, bid was recorded locally\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `declarerPos` - copied from request\
+            `turnCard` - copied from request\
+            `swapCard` *[optional\*]* - ***suggested*** card to swap (0-23), or -1
+            = no swap; or null\
+            \
+            \* Note that server may optionally specify suggested value for `card`
+            (or null value to indicate no suggestion)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SwapSugg'
+  /defense:
+    get:
+      tags:
+        - Defense
+      summary: Request defense declaration (e.g. defend alone?) from server
+      description: >-
+        Note that multiple defense declarations per hand may be requested, for
+        partners hosted on the same server
+      operationId: getDefense
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Session ID
+          schema:
+            $ref: '#/components/schemas/SessToken'
+        - name: gameNum
+          in: query
+          required: true
+          description: Game number (0-n)
+          schema:
+            type: integer
+            example: 10
+        - name: dealNum
+          in: query
+          required: true
+          description: Deal number (0-n) within the game
+          schema:
+            type: integer
+            example: 3
+        - name: pos
+          in: query
+          required: true
+          description: Bidding position (0-3, with 3 = dealer)
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: |-
+            Successful operation, bid declared\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `pos` - copied from request\
+            `alone` - defend alone? (true/false)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefenseInfo'
+    post:
+      tags:
+        - Defense
+      summary: Notify server of a defense declaration
+      description: Notification from the coordinator of a remote defense declaration
+      operationId: postDefense
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `gameNum` - sequential game number within the session (0-n)\
+          `dealNum` - sequential deal number within the game (0-n)\
+          `pos` - bidding position (0-3, with 3 = dealer)\
+          `alone` - defending alone? (true/false)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefenseInfo'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation, bid was recorded locally\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `pos` - copied from request\
+            `alone` *[optional\*]* - ***suggested*** defense declaration; or null\
+            \
+            \* Note that server may optionally specify suggested value for `alone`
+            (or null value to indicate no suggestion)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DefenseSugg'
+  /play:
+    get:
+      tags:
+        - Play
+      summary: Request card play from server
+      description: >-
+        Note that multiple card plays per round may be requested, for partners
+        hosted on the same server
+      operationId: getPlay
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Session ID
+          schema:
+            $ref: '#/components/schemas/SessToken'
+        - name: gameNum
+          in: query
+          required: true
+          description: Game number (0-n)
+          schema:
+            type: integer
+            example: 10
+        - name: dealNum
+          in: query
+          required: true
+          description: Deal number (0-n) within the game
+          schema:
+            type: integer
+            example: 3
+        - name: trickNum
+          in: query
+          required: true
+          description: Trick number (0-4) within the deal
+          schema:
+            type: integer
+            example: 2
+        - name: trickSeq
+          in: query
+          required: true
+          description: Play sequence (0-3) within the trick
+          schema:
+            type: integer
+            example: 1
+        - name: pos
+          in: query
+          required: true
+          description: Playing position (0-3)
+          schema:
+            type: integer
+            example: 0
+        - name: playableCards
+          in: query
+          required: true
+          description: Playable cards - int[5] (0-23)
+          schema:
+            type: array
+            items:
+              type: integer
+            example: [2, 8, 11, 15, 21]
+      responses:
+        '200':
+          description: |-
+            Successful operation, bid declared\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `trickNum` - copied from request\
+            `trickSeq` - copied from request\
+            `pos` - copied from request\
+            `card` - card to play (0-23)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayInfo'
+    post:
+      tags:
+        - Play
+      summary: Notify server of a card play
+      description: Notification from the coordinator of a remote card play
+      operationId: postPlay
+      requestBody:
+        description: |-
+          `token` - session ID\
+          `gameNum` - sequential game number within the session (0-n)\
+          `dealNum` - sequential deal number within the game (0-n)\
+          `trickNum` - trick number within the deal (0-4)\
+          `trickSeq` - play sequence within the trick (0-3)\
+          `pos` - playing position (0-3, with 3 = dealer)\
+          `card` - card played (0-3)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlayInfo'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation, bid was recorded locally\
+            `token` - copied from request\
+            `gameNum` - copied from request\
+            `dealNum` - copied from request\
+            `trickNum` - copied from request\
+            `trickSeq` - copied from request\
+            `pos` - copied from request\
+            `card` *[optional\*]* - ***suggested*** card to play (0-23); or null\
+            \
+            \* Note that server may optionally specify suggested value for `card`
+            (or null value to indicate no suggestion)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaySugg'
+components:
+  schemas:
+    SessToken:
+      type: string
+      description: Session token (ID)
+      example: 464f31d
+    SessStatusNew:
+      type: string
+      description: Session status (new))
+      example: new
+      enum:
+        - new
+    SessStatus:
+      type: string
+      description: Session status
+      example: active
+      enum:
+        - ok
+        - new
+        - update
+        - active
+        - complete
+    SessStatusComplete:
+      type: string
+      description: Session status (complete)
+      example: complete
+      enum:
+        - complete
+    SessStatusInfo:
+      type: string
+      description: Session status information
+      example: '[update information]'
+    SessionInfo:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        status:
+          $ref: '#/components/schemas/SessStatusNew'
+    SessionProto:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        status:
+          $ref: '#/components/schemas/SessStatus'
+        cards:
+          type: array
+          description: >-
+            Card Representation (int[24]): 9C, 10C, JC, ... 9D, 10D, JD, ... QS,
+            KS, AS
+          items:
+            type: integer
+          example:
+            - 3
+            - 7
+            - 11
+            - 15
+            - 19
+            - 23
+            - 2
+            - 6
+            - 10
+            - 14
+            - 18
+            - 22
+            - 1
+            - 5
+            - 9
+            - 13
+            - 17
+            - 21
+            - 0
+            - 4
+            - 8
+            - 12
+            - 16
+            - 20
+        suits:
+          type: array
+          description: 'Suit Representation (int[4]): Clubs, Diamonds, Hearts, Spades'
+          items:
+            type: integer
+          example:
+            - 3
+            - 2
+            - 1
+            - 0
+    SessionStatus:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        status:
+          $ref: '#/components/schemas/SessStatusComplete'
+        info:
+          $ref: '#/components/schemas/SessStatusInfo'
+    GmStatusNew:
+      type: string
+      description: Game status (new)
+      example: new
+      enum:
+        - new
+    GmStatus:
+      type: string
+      description: Game status
+      example: active
+      enum:
+        - ok
+        - new
+        - update
+        - active
+        - complete
+    GmStatusComplete:
+      type: string
+      description: Game status (complete)
+      example: complete
+      enum:
+        - complete
+    GmStatusInfo:
+      type: string
+      description: Game status information
+      example: '[update information]'
+    GameInfo:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        status:
+          $ref: '#/components/schemas/GmStatusNew'
+    GameStatus:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        status:
+          $ref: '#/components/schemas/GmStatus'
+        info:
+          $ref: '#/components/schemas/GmStatusInfo'
+    GameComplete:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        status:
+          $ref: '#/components/schemas/GmStatusComplete'
+        info:
+          $ref: '#/components/schemas/GmStatusInfo'
+    DlStatusNew:
+      type: string
+      description: Deal status (new)
+      example: new
+      enum:
+        - new
+    DlStatus:
+      type: string
+      description: Deal status
+      example: active
+      enum:
+        - ok
+        - new
+        - update
+        - active
+        - complete
+    DlStatusComplete:
+      type: string
+      description: Deal status (complete)
+      example: complete
+      enum:
+        - complete
+    DlStatusInfo:
+      type: string
+      description: Deal status information
+      example: ''
+    DealInfo:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        status:
+          $ref: '#/components/schemas/DlStatusNew'
+        cards:
+          type: array
+          description: |-
+            Cards dealt (int[24]):
+            - 0-4 : Position 0 hand
+            - 5-9 : Position 1 hand
+            - 10-14: Position 2 hand
+            - 15-19: Position 3 hand (dealer)
+            - 20 : Turn card
+            - 21-23: Buries
+          items:
+            type: integer
+          example:
+            - 2
+            - 6
+            - 10
+            - 14
+            - 18
+            - 22
+            - 3
+            - 7
+            - 11
+            - 15
+            - 19
+            - 23
+            - 0
+            - 4
+            - 8
+            - 12
+            - 16
+            - 20
+            - 1
+            - 5
+            - 9
+            - 13
+            - 17
+            - 21
+    DealStatus:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        status:
+          $ref: '#/components/schemas/DlStatus'
+        info:
+          $ref: '#/components/schemas/DlStatusInfo'
+    DealComplete:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        status:
+          $ref: '#/components/schemas/DlStatusComplete'
+        info:
+          $ref: '#/components/schemas/DlStatusInfo'
+    BidInfo:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        round:
+          type: integer
+          description: Bidding round (0-1)
+          example: 0
+        pos:
+          type: integer
+          description: Bidding position (0-3)
+          example: 1
+        suit:
+          type: integer
+          description: Suit (0-3)
+          example: 2
+        alone:
+          type: boolean
+          description: Go alone?
+          example: false
+    BidSugg:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        round:
+          type: integer
+          description: Bidding round (0-1)
+          example: 0
+        pos:
+          type: integer
+          description: Bidding position (0-3)
+          example: 1
+        suit:
+          type: integer
+          description: Suit (0-3)
+          example: 2
+        alone:
+          type: boolean
+          description: Go alone?
+          example: true
+    SwapInfo:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        declarerPos:
+          type: integer
+          description: Declarer position (0-3)
+          example: 1
+        turnCard:
+          type: integer
+          description: Turn card (0-23)
+          example: 14
+        swapCard:
+          type: integer
+          description: Card (0-23) to swap for turn card, or -1 = no swap
+          example: 21
+    SwapSugg:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        declarerPos:
+          type: integer
+          description: Declarer position (0-3)
+          example: 1
+        turnCard:
+          type: integer
+          description: Turn card (0-23)
+          example: 14
+        swapCard:
+          type: integer
+          description: Card (0-23) to swap for turn card, or -1 = no swap
+          example: 8
+    DefenseInfo:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        pos:
+          type: integer
+          description: Defending position (0-3)
+          example: 1
+        alone:
+          type: boolean
+          description: Defend alone?
+          example: false
+    DefenseSugg:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        pos:
+          type: integer
+          description: Defending position (0-3)
+          example: 1
+        alone:
+          type: boolean
+          description: Defend alone?
+          example:
+    PlayInfo:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        trickNum:
+          type: integer
+          description: Trick number (0-4) within the deal
+          example: 2
+        trickSeq:
+          type: integer
+          description: Play sequence (0-3) within the trick
+          example: 1
+        pos:
+          type: integer
+          description: Playing position (0-3)
+          example: 0
+        card:
+          type: integer
+          description: Card played (0-23)
+          example: 16
+    PlaySugg:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n) within the game
+          example: 3
+        trickNum:
+          type: integer
+          description: Trick number (0-4) within the deal
+          example: 2
+        trickSeq:
+          type: integer
+          description: Play sequence (0-3) within the trick
+          example: 1
+        pos:
+          type: integer
+          description: Playing position (0-3)
+          example: 0
+        card:
+          type: integer
+          description: Card played (0-23)
+          example: 11
