@@ -47,7 +47,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SessionInfo'
+              $ref: '#/components/schemas/SessionNew'
         required: true
       responses:
         '200':
@@ -62,7 +62,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionProto'
+                $ref: '#/components/schemas/SessionStatus'
     patch:
       tags:
         - Session
@@ -82,7 +82,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SessionStatus'
+              $ref: '#/components/schemas/SessionComplete'
         required: true
       responses:
         '200':
@@ -90,7 +90,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionStatus'
+                $ref: '#/components/schemas/SessionComplete'
   /game:
     post:
       tags:
@@ -106,7 +106,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GameInfo'
+              $ref: '#/components/schemas/GameNew'
         required: true
       responses:
         '200':
@@ -170,7 +170,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DealInfo'
+              $ref: '#/components/schemas/DealNew'
         required: true
       responses:
         '200':
@@ -229,7 +229,7 @@ paths:
           required: true
           description: Session ID
           schema:
-            $ref: '#/components/schemas/SessToken'
+            $ref: '#/components/schemas/SessionToken'
         - name: gameNum
           in: query
           required: true
@@ -328,7 +328,7 @@ paths:
           required: true
           description: Session ID
           schema:
-            $ref: '#/components/schemas/SessToken'
+            $ref: '#/components/schemas/SessionToken'
         - name: gameNum
           in: query
           required: true
@@ -435,7 +435,7 @@ paths:
           required: true
           description: Session ID
           schema:
-            $ref: '#/components/schemas/SessToken'
+            $ref: '#/components/schemas/SessionToken'
         - name: gameNum
           in: query
           required: true
@@ -519,7 +519,7 @@ paths:
           required: true
           description: Session ID
           schema:
-            $ref: '#/components/schemas/SessToken'
+            $ref: '#/components/schemas/SessionToken'
         - name: gameNum
           in: query
           required: true
@@ -619,195 +619,130 @@ paths:
                 $ref: '#/components/schemas/PlaySugg'
 components:
   schemas:
-    SessToken:
+    SessionToken:
       type: string
       description: Session token (ID)
       example: 464f31d
-    SessStatusNew:
-      type: string
-      description: Session status (new))
-      example: new
-      enum:
-        - new
-    SessStatus:
-      type: string
-      description: Session status
-      example: active
-      enum:
-        - ok
-        - new
-        - update
-        - active
-        - complete
-    SessStatusComplete:
-      type: string
-      description: Session status (complete)
-      example: complete
-      enum:
-        - complete
-    SessStatusInfo:
-      type: string
-      description: Session status information
-      example: '[update information]'
-    SessionInfo:
+    SessionNew:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         status:
-          $ref: '#/components/schemas/SessStatusNew'
-    SessionProto:
-      type: object
-      properties:
-        token:
-          $ref: '#/components/schemas/SessToken'
-        status:
-          $ref: '#/components/schemas/SessStatus'
-        cards:
-          type: array
-          description: >-
-            Card Representation (int[24]): 9C, 10C, JC, ... 9D, 10D, JD, ... QS,
-            KS, AS
-          items:
-            type: integer
-          example:
-            - 3
-            - 7
-            - 11
-            - 15
-            - 19
-            - 23
-            - 2
-            - 6
-            - 10
-            - 14
-            - 18
-            - 22
-            - 1
-            - 5
-            - 9
-            - 13
-            - 17
-            - 21
-            - 0
-            - 4
-            - 8
-            - 12
-            - 16
-            - 20
-        suits:
-          type: array
-          description: 'Suit Representation (int[4]): Clubs, Diamonds, Hearts, Spades'
-          items:
-            type: integer
-          example:
-            - 3
-            - 2
-            - 1
-            - 0
+          type: string
+          description: Session status (new))
+          example: new
+          enum:
+            - new
     SessionStatus:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         status:
-          $ref: '#/components/schemas/SessStatusComplete'
-        info:
-          $ref: '#/components/schemas/SessStatusInfo'
-    GmStatusNew:
-      type: string
-      description: Game status (new)
-      example: new
-      enum:
-        - new
-    GmStatus:
-      type: string
-      description: Game status
-      example: active
-      enum:
-        - ok
-        - new
-        - update
-        - active
-        - complete
-    GmStatusComplete:
-      type: string
-      description: Game status (complete)
-      example: complete
-      enum:
-        - complete
-    GmStatusInfo:
-      type: string
-      description: Game status information
-      example: '[update information]'
-    GameInfo:
+          type: string
+          description: Session status
+          example: active
+          enum:
+            - ok
+            - new
+            - update
+            - active
+            - complete
+        cards:
+          type: array
+          description: >-
+            Card Representation (int[24]): 9C, 10C, JC, ... 9D, 10D, JD, ... QS, KS, AS
+          items:
+            type: integer
+          example: [3, 7, 11, 15, 19, 23,
+                    2, 6, 10, 14, 18, 22,
+                    1, 5,  9, 13, 17, 21,
+                    0, 4,  8, 12, 16, 20]
+        suits:
+          type: array
+          description: >-
+            Suit Representation (int[4]): Clubs, Diamonds, Hearts, Spades
+          items:
+            type: integer
+          example: [3, 2, 1, 0]
+    SessionComplete:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
+        status:
+          type: string
+          description: Session status (complete)
+          example: complete
+          enum:
+            - complete
+        info:
+          type: string
+          description: Session status information
+          example: '[update information]'
+    GameNew:
+      type: object
+      properties:
+        token:
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
           example: 10
         status:
-          $ref: '#/components/schemas/GmStatusNew'
+          type: string
+          description: Game status (new)
+          example: new
+          enum:
+            - new
     GameStatus:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
           example: 10
         status:
-          $ref: '#/components/schemas/GmStatus'
+          type: string
+          description: Game status
+          example: active
+          enum:
+            - ok
+            - new
+            - update
+            - active
+            - complete
         info:
-          $ref: '#/components/schemas/GmStatusInfo'
+          type: string
+          description: Game status information
+          example: '[update information]'
     GameComplete:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
           example: 10
         status:
-          $ref: '#/components/schemas/GmStatusComplete'
+          type: string
+          description: Game status (complete)
+          example: complete
+          enum:
+            - complete
         info:
-          $ref: '#/components/schemas/GmStatusInfo'
-    DlStatusNew:
-      type: string
-      description: Deal status (new)
-      example: new
-      enum:
-        - new
-    DlStatus:
-      type: string
-      description: Deal status
-      example: active
-      enum:
-        - ok
-        - new
-        - update
-        - active
-        - complete
-    DlStatusComplete:
-      type: string
-      description: Deal status (complete)
-      example: complete
-      enum:
-        - complete
-    DlStatusInfo:
-      type: string
-      description: Deal status information
-      example: ''
-    DealInfo:
+          type: string
+          description: Game status information
+          example: '[update information]'
+    DealNew:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -817,7 +752,11 @@ components:
           description: Deal number (0-n) within the game
           example: 3
         status:
-          $ref: '#/components/schemas/DlStatusNew'
+          type: string
+          description: Deal status (new)
+          example: new
+          enum:
+            - new
         cards:
           type: array
           description: |-
@@ -830,36 +769,16 @@ components:
             - 21-23: Buries
           items:
             type: integer
-          example:
-            - 2
-            - 6
-            - 10
-            - 14
-            - 18
-            - 22
-            - 3
-            - 7
-            - 11
-            - 15
-            - 19
-            - 23
-            - 0
-            - 4
-            - 8
-            - 12
-            - 16
-            - 20
-            - 1
-            - 5
-            - 9
-            - 13
-            - 17
-            - 21
+          example: [22,  1, 21, 12,  7,
+                    23, 17, 15, 14, 10,
+                    20, 16,  3, 13,  4,
+                    5,  11,  2,  9,  0,
+                    8,  19,  6, 18]
     DealStatus:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -869,14 +788,24 @@ components:
           description: Deal number (0-n) within the game
           example: 3
         status:
-          $ref: '#/components/schemas/DlStatus'
+          type: string
+          description: Deal status
+          example: active
+          enum:
+            - ok
+            - new
+            - update
+            - active
+            - complete
         info:
-          $ref: '#/components/schemas/DlStatusInfo'
+          type: string
+          description: Deal status information
+          example: ''
     DealComplete:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -886,14 +815,20 @@ components:
           description: Deal number (0-n) within the game
           example: 3
         status:
-          $ref: '#/components/schemas/DlStatusComplete'
+          type: string
+          description: Deal status (complete)
+          example: complete
+          enum:
+            - complete
         info:
-          $ref: '#/components/schemas/DlStatusInfo'
+          type: string
+          description: Deal status information
+          example: ''
     BidInfo:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -922,7 +857,7 @@ components:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -951,7 +886,7 @@ components:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -976,7 +911,7 @@ components:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -1001,7 +936,7 @@ components:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -1022,7 +957,7 @@ components:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -1043,7 +978,7 @@ components:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
@@ -1072,7 +1007,7 @@ components:
       type: object
       properties:
         token:
-          $ref: '#/components/schemas/SessToken'
+          $ref: '#/components/schemas/SessionToken'
         gameNum:
           type: integer
           description: Game number (0-n)
