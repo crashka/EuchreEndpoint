@@ -132,7 +132,6 @@ class EpDeal {
     int    dealNum;
     String status;
     int[]  cards;
-    int    pos;
 
     Deal   deal;
 
@@ -142,7 +141,6 @@ class EpDeal {
         this.dealNum = info.dealNum();
         this.status  = status;  // ignore `info.status()`
         this.cards   = info.cards();
-        this.pos     = info.pos();
 
         this.deal    = new Deal(this.cards, DEALER_POS);
     }
@@ -163,7 +161,7 @@ record SessionInfo(String token, String status) {
 }
 
 // Session - POST response
-record SessionProto(String token, String status, int[] cardsProto, int[] suitsProto) {
+record SessionProto(String token, String status, int[] cards, int[] suits) {
 
     public SessionProto(EpSession sess) {
         this(sess.token, sess.status, sess.protocol.getCards(), sess.protocol.getSuits());
@@ -199,7 +197,7 @@ record GameStatus(String token, int gameNum, String status, String info) {
 }
 
 // Deal - POST request
-record DealInfo(String token, int gameNum, int dealNum, String status, int[] cards, int pos) {
+record DealInfo(String token, int gameNum, int dealNum, String status, int[] cards) {
 }
 
 // Deal - POST response, PATCH request/response
@@ -215,34 +213,42 @@ record DealStatus(String token, int gameNum, int dealNum, String status, String 
 }
 
 // Bid - GET response, POST request/response
-record BidInfo(String token, int gameNum, int dealNum, int round, int pos, int suit, boolean alone) {
+record BidInfo(String token, int gameNum, int dealNum, int round, int turnCard, int pos,
+               int suit, boolean alone) {
 
     public BidInfo(BidInfo bid, int suggSuit, boolean suggAlone) {
-        this(bid.token, bid.gameNum, bid.dealNum, bid.round, bid.pos, suggSuit, suggAlone);
+        this(bid.token, bid.gameNum, bid.dealNum, bid.round, bid.turnCard, bid.pos,
+             suggSuit, suggAlone);
     }
 }
 
 // Swap - GET response, POST request/response
-record SwapInfo(String token, int gameNum, int dealNum, int pos, int card) {
+record SwapInfo(String token, int gameNum, int dealNum, int declarerPos, int turnCard,
+                int pos, int card) {
 
     public SwapInfo(SwapInfo swap, int suggCard) {
-        this(swap.token, swap.gameNum, swap.dealNum, swap.pos, suggCard);
+        this(swap.token, swap.gameNum, swap.dealNum, swap.declarerPos, swap.turnCard,
+             swap.pos, suggCard);
     }
 }
 
 // Defense - GET response, POST request/response
-record DefenseInfo(String token, int gameNum, int dealNum, int pos, boolean alone) {
+record DefenseInfo(String token, int gameNum, int dealNum, int declarerPos, int trumpSuit,
+                   int pos, boolean alone) {
 
     public DefenseInfo(DefenseInfo def, boolean suggAlone) {
-        this(def.token, def.gameNum, def.dealNum, def.pos, suggAlone);
+        this(def.token, def.gameNum, def.dealNum, def.declarerPos, def.trumpSuit, def.pos,
+             suggAlone);
     }
 }
 
 // Play - GET response, POST request/response
-record PlayInfo(String token, int gameNum, int dealNum, int trickNum, int trickSeq, int pos, int card) {
+record PlayInfo(String token, int gameNum, int dealNum, int trickNum, int trickSeq,
+                int pos, int card) {
 
     public PlayInfo(PlayInfo play, int suggCard) {
-        this(play.token, play.gameNum, play.dealNum, play.trickNum, play.trickSeq, play.pos, suggCard);
+        this(play.token, play.gameNum, play.dealNum, play.trickNum, play.trickSeq,
+             play.pos, suggCard);
     }
 }
 
@@ -390,10 +396,11 @@ public class EndpointController {
                           @RequestParam int gameNum,
                           @RequestParam int dealNum,
                           @RequestParam int round,
+                          @RequestParam int turnCard,
                           @RequestParam int pos) {
         int suit = -1;
         boolean alone = false;
-        return new BidInfo(token, gameNum, dealNum, round, pos, suit, alone);
+        return new BidInfo(token, gameNum, dealNum, round, turnCard, pos, suit, alone);
     }
 
     @PostMapping("/bid")
@@ -409,10 +416,12 @@ public class EndpointController {
     public SwapInfo getSwap(@RequestParam String token,
                             @RequestParam int gameNum,
                             @RequestParam int dealNum,
+                            @RequestParam int declarerPos,
+                            @RequestParam int turnCard,
                             @RequestParam int pos,
                             @RequestParam List<Integer> swappableCards) {
         int swapCard = -1;
-        return new SwapInfo(token, gameNum, dealNum, pos, swapCard);
+        return new SwapInfo(token, gameNum, dealNum, declarerPos, turnCard, pos, swapCard);
     }
 
     @PostMapping("/swap")
@@ -427,9 +436,11 @@ public class EndpointController {
     public DefenseInfo getDefense(@RequestParam String token,
                                   @RequestParam int gameNum,
                                   @RequestParam int dealNum,
+                                  @RequestParam int declarerPos,
+                                  @RequestParam int trumpSuit,
                                   @RequestParam int pos) {
         boolean alone = false;
-        return new DefenseInfo(token, gameNum, dealNum, pos, alone);
+        return new DefenseInfo(token, gameNum, dealNum, declarerPos, trumpSuit, pos, alone);
     }
 
     @PostMapping("/defense")

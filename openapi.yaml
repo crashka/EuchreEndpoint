@@ -145,6 +145,7 @@ paths:
       requestBody:
         description: |-
           `token` - Session identifier\
+          `gameNum` - Sequential game number within the session\
           `status` - Updated status; valid values:
           - "**complete**" - Game is complete, local resources may be released
 
@@ -418,7 +419,7 @@ paths:
             `declarerPos` - *Copied from request*\
             `turnCard` - *Copied from request*\
             `pos` - *Copied from request*\
-            `swapCard` - Card swapped for turn card (0-23), or -1 = no swap
+            `card` - Card swapped for turn card (0-23), or -1 = no swap
           content:
             application/json:
               schema:
@@ -440,7 +441,7 @@ paths:
           `declarerPos` - Declarer position (0-3, with 3 = dealer)\
           `turnCard` - Turn card (0-23, indicates trump suit)\
           `pos` - Swapping position (always 3, denoting dealer)\
-          `swapCard` - Card swapped for turn card (0-23), or -1 = no swap
+          `card` - Card swapped for turn card (0-23), or -1 = no swap
         content:
           application/json:
             schema:
@@ -456,7 +457,7 @@ paths:
             `declarerPos` - *Copied from request*\
             `turnCard` - *Copied from request*\
             `pos` - *Copied from request*\
-            `swapCard` *[optional\*]* - ***Suggested*** card to swap (0-23), or -1
+            `card` *[optional\*]* - ***Suggested*** card to swap (0-23), or -1
             = no swap; or null\
             \
             \* Server may optionally specify suggested value for `card` (null value
@@ -495,10 +496,24 @@ paths:
           schema:
             type: integer
             example: 3
+        - name: declarerPos
+          in: query
+          required: true
+          description: Declarer position (0-3, with 3 = dealer)
+          schema:
+            type: integer
+            example: 1
+        - name: trumpSuit
+          in: query
+          required: true
+          description: Trump suit (0-3)
+          schema:
+            type: integer
+            example: 2
         - name: pos
           in: query
           required: true
-          description: Bidding position (0-3, with 3 = dealer)
+          description: Defending position (0-3, with 3 = dealer)
           schema:
             type: integer
             example: 1
@@ -509,6 +524,8 @@ paths:
             `token` - *Copied from request*\
             `gameNum` - *Copied from request*\
             `dealNum` - *Copied from request*\
+            `declarerPos` - *Copied from request*\
+            `trumpSuit` - *Copied from request*\
             `pos` - *Copied from request*\
             `alone` - Defending alone declaration (true/false)
           content:
@@ -527,7 +544,9 @@ paths:
           `token` - Session identifier\
           `gameNum` - Sequential game number within the session (0-n)\
           `dealNum` - Sequential deal number within the game (0-n)\
-          `pos` - Bidding position (0-3, with 3 = dealer)\
+          `declarerPos` - Declarer position (0-3, with 3 = dealer)\
+          `trumpSuit` - Trump suit (0-3)\
+          `pos` - Defending position (0-3, with 3 = dealer)\
           `alone` - Defending alone declaration (true/false)
         content:
           application/json:
@@ -541,6 +560,8 @@ paths:
             `token` - *Copied from request*\
             `gameNum` - *Copied from request*\
             `dealNum` - *Copied from request*\
+            `declarerPos` - *Copied from request*\
+            `trumpSuit` - *Copied from request*\
             `pos` - *Copied from request*\
             `alone` *[optional\*]* - ***Suggested*** defending alone declaration;
             or null\
@@ -685,7 +706,7 @@ components:
             - new
     SessionProto:
       type: object
-      description: Session status (with server-defined protocol information)
+      description: Session status with server-defined protocol information
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -712,6 +733,24 @@ components:
           items:
             type: integer
           example: [3, 2, 1, 0]
+    SessionStatus:
+      type: object
+      description: Session status
+      properties:
+        token:
+          $ref: '#/components/schemas/SessionToken'
+        status:
+          type: string
+          description: Session status
+          example: active
+          enum:
+            - new
+            - active
+            - complete
+        info:
+          type: string
+          description: Session status information
+          example: ''
     SessionComplete:
       type: object
       description: Session status (complete)
@@ -967,7 +1006,7 @@ components:
           type: integer
           description: Swapping position (always 3)
           example: 3
-        swapCard:
+        card:
           type: integer
           description: Card to swap for turn card (0-23), or -1 = no swap
           example: 21
@@ -997,7 +1036,7 @@ components:
           type: integer
           description: Swapping position (always 3)
           example: 3
-        swapCard:
+        card:
           type: integer
           description: Card to swap for turn card (0-23), or -1 = no swap
           example: 8
@@ -1015,6 +1054,14 @@ components:
           type: integer
           description: Deal number (0-n)
           example: 3
+        declarerPos:
+          type: integer
+          description: Declarer position (0-3)
+          example: 1
+        trumpSuit:
+          type: integer
+          description: Trump suit (0-3)
+          example: 2
         pos:
           type: integer
           description: Defending position (0-3)
@@ -1037,6 +1084,14 @@ components:
           type: integer
           description: Deal number (0-n)
           example: 3
+        declarerPos:
+          type: integer
+          description: Declarer position (0-3)
+          example: 1
+        trumpSuit:
+          type: integer
+          description: Trump suit (0-3)
+          example: 2
         pos:
           type: integer
           description: Defending position (0-3)
