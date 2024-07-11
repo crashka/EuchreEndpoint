@@ -54,7 +54,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SessionNew'
+              $ref: '#/components/schemas/SessionInfo'
         required: true
       responses:
         '200':
@@ -73,7 +73,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionStatus'
+                $ref: '#/components/schemas/SessionProto'
     patch:
       tags:
         - Session
@@ -120,7 +120,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GameNew'
+              $ref: '#/components/schemas/GameInfo'
         required: true
       responses:
         '200':
@@ -189,7 +189,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DealNew'
+              $ref: '#/components/schemas/DealInfo'
         required: true
       responses:
         '200':
@@ -669,38 +669,36 @@ components:
   schemas:
     SessionToken:
       type: string
-      description: Session token (identifier)
+      description: Session identifier
       example: 464f31d
-    SessionNew:
+    SessionInfo:
       type: object
+      description: Session information
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
         status:
           type: string
-          description: Session status (new))
+          description: Session status (new)
           example: new
           enum:
             - new
-    SessionStatus:
+    SessionProto:
       type: object
+      description: Session status (with server-defined protocol information)
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
         status:
           type: string
-          description: Session status
+          description: Session status (active)
           example: active
           enum:
-            - ok
-            - new
-            - update
             - active
-            - complete
         cards:
           type: array
           description: >-
-            Card Representation - int[24]: 9C, 10C, JC, ... 9D, 10D, JD, ... QS, KS, AS
+            Card representation - int[24]: 9C, 10C, JC, ... 9D, 10D, JD, ... QS, KS, AS
           items:
             type: integer
           example: [3, 7, 11, 15, 19, 23,
@@ -710,12 +708,13 @@ components:
         suits:
           type: array
           description: >-
-            Suit Representation - int[4]: clubs, diamonds, hearts, spades
+            Suit representation - int[4]: clubs, diamonds, hearts, spades
           items:
             type: integer
           example: [3, 2, 1, 0]
     SessionComplete:
       type: object
+      description: Session status (complete)
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -729,8 +728,9 @@ components:
           type: string
           description: Session status information
           example: ''
-    GameNew:
+    GameInfo:
       type: object
+      description: Game information
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -746,6 +746,7 @@ components:
             - new
     GameStatus:
       type: object
+      description: Game status
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -758,9 +759,7 @@ components:
           description: Game status
           example: active
           enum:
-            - ok
             - new
-            - update
             - active
             - complete
         info:
@@ -769,6 +768,7 @@ components:
           example: ''
     GameComplete:
       type: object
+      description: Game status (complete)
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -786,8 +786,9 @@ components:
           type: string
           description: Game status information
           example: ''
-    DealNew:
+    DealInfo:
       type: object
+      description: Deal information
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -797,7 +798,7 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         status:
           type: string
@@ -824,6 +825,7 @@ components:
                     8,  19,  6, 18]
     DealStatus:
       type: object
+      description: Deal status
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -833,16 +835,14 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         status:
           type: string
           description: Deal status
           example: active
           enum:
-            - ok
             - new
-            - update
             - active
             - complete
         info:
@@ -851,6 +851,7 @@ components:
           example: ''
     DealComplete:
       type: object
+      description: Deal status (complete)
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -860,7 +861,7 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         status:
           type: string
@@ -874,6 +875,7 @@ components:
           example: ''
     BidInfo:
       type: object
+      description: Bid information
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -883,7 +885,7 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         round:
           type: integer
@@ -907,6 +909,7 @@ components:
           example: false
     BidSugg:
       type: object
+      description: Bid information (with optional suggestions)
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -916,7 +919,7 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         round:
           type: integer
@@ -940,6 +943,7 @@ components:
           example: true
     SwapInfo:
       type: object
+      description: Swap information
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -949,7 +953,7 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         declarerPos:
           type: integer
@@ -969,6 +973,7 @@ components:
           example: 21
     SwapSugg:
       type: object
+      description: Swap information (with optional suggestion)
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -978,7 +983,7 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         declarerPos:
           type: integer
@@ -998,6 +1003,7 @@ components:
           example: 8
     DefenseInfo:
       type: object
+      description: Defense information
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -1007,7 +1013,7 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         pos:
           type: integer
@@ -1019,6 +1025,7 @@ components:
           example: false
     DefenseSugg:
       type: object
+      description: Defense information (with optional suggestion)
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -1028,7 +1035,7 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         pos:
           type: integer
@@ -1040,6 +1047,7 @@ components:
           example:
     PlayInfo:
       type: object
+      description: Play information
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -1049,15 +1057,15 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         trickNum:
           type: integer
-          description: Trick number (0-4) within the deal
+          description: Trick number (0-4)
           example: 2
         trickSeq:
           type: integer
-          description: Play sequence (0-3) within the trick
+          description: Play sequence (0-3)
           example: 1
         pos:
           type: integer
@@ -1069,6 +1077,7 @@ components:
           example: 16
     PlaySugg:
       type: object
+      description: Play information (with optional suggestion)
       properties:
         token:
           $ref: '#/components/schemas/SessionToken'
@@ -1078,15 +1087,15 @@ components:
           example: 10
         dealNum:
           type: integer
-          description: Deal number (0-n) within the game
+          description: Deal number (0-n)
           example: 3
         trickNum:
           type: integer
-          description: Trick number (0-4) within the deal
+          description: Trick number (0-4)
           example: 2
         trickSeq:
           type: integer
-          description: Play sequence (0-3) within the trick
+          description: Play sequence (0-3)
           example: 1
         pos:
           type: integer

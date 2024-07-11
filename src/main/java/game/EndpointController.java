@@ -144,7 +144,7 @@ class EpDeal {
         this.cards   = info.cards();
         this.pos     = info.pos();
 
-        this.deal    =  new Deal(this.cards, DEALER_POS);
+        this.deal    = new Deal(this.cards, DEALER_POS);
     }
 }
 
