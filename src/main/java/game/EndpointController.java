@@ -78,7 +78,7 @@ class EpGame {
     int    gameNum;
     String status;
 
-    Game   game;
+    Game   game = new Game();
     ArrayList<EpDeal> dealList = new ArrayList<EpDeal>();
 
     public EpGame(GameInfo info, String status) {
@@ -125,6 +125,8 @@ class EpGame {
  */
 class EpDeal {
 
+    static final int DEALER_POS = 3;
+
     String token;
     int    gameNum;
     int    dealNum;
@@ -141,6 +143,8 @@ class EpDeal {
         this.status  = status;  // ignore `info.status()`
         this.cards   = info.cards();
         this.pos     = info.pos();
+
+        this.deal    =  new Deal(this.cards, DEALER_POS);
     }
 }
 
