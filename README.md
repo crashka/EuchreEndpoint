@@ -23,10 +23,10 @@ player's action (implemented by some other strategy), or requests an action from
 player.  It is assumed that there is no cross-talk between hands (i.e. cheating) on the
 server side.
 
-See [API_NOTES](blob/master/API_NOTES.md) for a more detailed description of the API.
+See [API_NOTES](API_NOTES.md) for a more detailed description of the API.
 
-The formal schema for the API is defined in [openapi.yaml](blob/master/openapi.yaml) (OAS
-3.0).  This specification may be viewed using the free [Swagger
+The formal schema for the API is defined in [openapi.yaml](openapi.yaml) (OAS 3.0).  This
+specification may be viewed using the free [Swagger
 UI](https://swagger.io/tools/swagger-ui/) tool.
 
 As an overview, here is the general call sequence:
