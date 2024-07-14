@@ -2,27 +2,28 @@
 
 ## Overview
 
-This version of the API represents a "shadow server", wherein the server is capable of
-playing all hands, but the client controls which position actually makes the bids (and
-defenses) and plays the cards for a game.  It is assumed that there is no cross-talk
-between hands (i.e. cheating) on the server side.
-
 Note that sequential data (e.g. counters and lists) are all zero-based.  For UI/output
 interfaces, we may want to display "game number", "deal number", and "trick number" as
 N+1.  For other internal indexable things (e.g. card, position, suit, etc.), we will map
 to descriptive, human-friendly representations.
 
-## Issues
+## Interface Issues/Discussion
 
 We actually may not want to support the card and suit representation mappings (see Session
 POST response) on the client/coordinator side, in which case it would be on the player
 endpoint implementation to map the coordinator representations, if/as needed.
 
+Note that the current interface does not support keeping track of game scores, since there
+is no representation of table positions across deals (only dealer/bidding positions within
+a deal).  We will probably not take this on, since the current design is very specific to
+support for [EuchreBeta](https://github.com/crashka/EuchreBeta)—rather, we'll leave this
+to be solved by [EuchreEndpoint2](https://github.com/crashka/EuchreEndpoint2).
+
 ## Endpoints
 
 ### Session
 
-#### POST - Notification of new session
+#### POST - New session notification
 
 **Request**
 
@@ -39,7 +40,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 - Suit Representation - int[4]
     - Clubs, Diamonds, Hearts, Spades
 
-#### PATCH - Notification of session status update or completion
+#### PATCH - Session update or completion notification
 
 **Request**
 
@@ -59,7 +60,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 ### Game
 
-#### POST - Notification of new game
+#### POST - New game notification
 
 **Request**
 
@@ -75,7 +76,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 - Status
     - "active" - Game created locally
 
-#### PATCH - Notification of game status update/completion
+#### PATCH - Game update or completion notification
 
 **Request**
 
@@ -96,7 +97,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 ### Deal
 
-#### POST - Start a New Deal
+#### POST - New deal notification
 
 **Request**
 
@@ -121,7 +122,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 - Status
     - "active" - Deal created locally
 
-#### PATCH - Notification of deal status update
+#### PATCH - Deal update or completion notification
 
 **Request**
 
@@ -130,7 +131,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 - Deal Num - int (0-n)
 - Status - string
     - "complete" - Deal Complete
-- Info - string
+- Info - string (deal winner and number of points awarded)
 
 **Response**
 
@@ -142,7 +143,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 ### Bid
 
-#### GET - Request for a Bid
+#### GET - Bid request
 
 **Request**
 
@@ -158,7 +159,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 - Suit - int (0-3), or -1 = pass
 - Alone - boolean
 
-#### POST - Notification of a Bid
+#### POST - Bid notification
 
 **Request**
 
@@ -178,7 +179,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 ### Swap
 
-#### GET - Request for Swap
+#### GET - Swap request
 
 **Request**
 
@@ -194,7 +195,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 - Swap Card - int (0-23), or-1 = no swap
 
-#### POST - Notification of Swap
+#### POST - Swap notification
 
 **Request**
 
@@ -212,7 +213,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 ### Defense
 
-#### GET - Request for a Defense
+#### GET - Defense request
 
 **Request**
 
@@ -227,7 +228,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 - Alone - boolean
 
-#### POST - Notification of a Defense
+#### POST - Defense notification
 
 **Request**
 
@@ -243,9 +244,49 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 - Suggested Alone - boolean
 
+### Trick
+
+#### POST - New trick notification
+
+**Request**
+
+- Session Token - string
+- Game Num - int (0-n)
+- Deal Num - int (0-n)
+- Trick Num - int (0-4)
+- Status - string
+    - "new"
+- Lead Position - int (0-3)
+
+**Response**
+
+\[Local Trick Status]
+
+- Status
+    - "active" - Trick created locally
+
+#### PATCH - Trick update or completion notification
+
+**Request**
+
+- Session Token - string
+- Game Num - int (0-n)
+- Trick Num - int (0-n)
+- Status - string
+    - "complete" - Trick Complete
+- Info - string (trick winner)
+
+**Response**
+
+\[Local Trick Status]
+
+- Status
+    - "active" - Trick active
+    - "complete" - Trick complete
+
 ### Play
 
-#### GET - Request for a Card to be Played
+#### GET - Play request
 
 **Request**
 
@@ -261,7 +302,7 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 - Card - int (0-23)
 
-#### POST - Notification of a Card Played
+#### POST - Play notification
 
 **Request**
 

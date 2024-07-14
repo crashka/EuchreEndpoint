@@ -33,6 +33,9 @@ tags:
     description: >-
       Request or notify the server of a defense declaration (e.g. defend alone)
       for the deal
+  - name: Trick
+    description: >-
+      Notify the server of the start or end of a trick
   - name: Play
     description: >-
       Request or notify the server of a card play for the current deal
@@ -572,6 +575,73 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DefenseSugg'
+  /trick:
+    post:
+      tags:
+        - Trick
+      summary: Start a new trick
+      description: >-
+        Notification from the coordinator that a new trick has been started
+      operationId: postTrick
+      requestBody:
+        description: |-
+          `token` - Session identifier\
+          `gameNum` - Sequential game number within the session (0-n)\
+          `dealNum` - Sequential deal number within the game (0-n)\
+          `trickNum` - Sequential trick number within the deal (0-4)\
+          `status` - Must have a value of "**new**"\
+          `leadPos` - Lead player position (0-3, with 3 = dealer)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrickInfo'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation; trick created locally\
+            `token` - *Copied from request*\
+            `gameNum` - *Copied from request*\
+            `dealNum` - *Copied from request*\
+            `trickNum` - *Copied from request*\
+            `status` - Should be set to "**active**"\
+            `info` - Optional (ignored)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrickStatus'
+    patch:
+      tags:
+        - Trick
+      summary: Update the status of a trick
+      description: >-
+        Notification from the coordinator that the status of the trick has
+        changed; currently only a status of "**complete**" is supported
+      operationId: patchTrick
+      requestBody:
+        description: |-
+          `token` - Session identifier\
+          `gameNum` - Sequential game number within the session (0-n)\
+          `dealNum` - Sequential deal number within the game (0-n)\
+          `trickNum` - Sequential trick number within the deal (0-4)\
+          `status` - Updated status; valid values:
+          - "**complete**" - Trick is complete, local resources may be released
+
+          `info` - Purely informational string (e.g. scores, stats, etc.)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrickComplete'
+        required: true
+      responses:
+        '200':
+          description: |-
+            Successful operation; trick updated (or removed) locally\
+            Response body (optional) is an echo of the request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrickComplete'
   /play:
     get:
       tags:
@@ -911,7 +981,7 @@ components:
         info:
           type: string
           description: Deal status information
-          example: ''
+          example: 'Winners: 0/2; Points: 2'
     BidInfo:
       type: object
       description: Bid information
@@ -1100,6 +1170,92 @@ components:
           type: boolean
           description: Defending alone?
           example:
+    TrickInfo:
+      type: object
+      description: Trick information
+      properties:
+        token:
+          $ref: '#/components/schemas/SessionToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n)
+          example: 3
+        trickNum:
+          type: integer
+          description: Trick number (0-4)
+          example: 0
+        status:
+          type: string
+          description: Trick status (new)
+          example: new
+          enum:
+            - new
+        leadPos:
+          type: integer
+          description: Lead player position (0-3)
+          example: 0
+    TrickStatus:
+      type: object
+      description: Trick status
+      properties:
+        token:
+          $ref: '#/components/schemas/SessionToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n)
+          example: 3
+        trickNum:
+          type: integer
+          description: Trick number (0-4)
+          example: 0
+        status:
+          type: string
+          description: Trick status
+          example: active
+          enum:
+            - new
+            - active
+            - complete
+        info:
+          type: string
+          description: Trick status information
+          example: ''
+    TrickComplete:
+      type: object
+      description: Trick status (complete)
+      properties:
+        token:
+          $ref: '#/components/schemas/SessionToken'
+        gameNum:
+          type: integer
+          description: Game number (0-n)
+          example: 10
+        dealNum:
+          type: integer
+          description: Deal number (0-n)
+          example: 3
+        trickNum:
+          type: integer
+          description: Trick number (0-4)
+          example: 0
+        status:
+          type: string
+          description: Trick status (complete)
+          example: complete
+          enum:
+            - complete
+        info:
+          type: string
+          description: Trick status information
+          example: 'Winners: 0/2'
     PlayInfo:
       type: object
       description: Play information
