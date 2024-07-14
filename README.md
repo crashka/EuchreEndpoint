@@ -83,14 +83,20 @@ JARs](https://maven.apache.org/guides/mini/guide-3rd-party-jars-local.html).
 
 ## Project Status
 
+**To Do**
+
+- Add `/trick` endpoint to controller
+- Complete integration with [EuchreBeta](https://github.com/crashka/EuchreBeta) engine
+  v0.9
 
 ## Related Projects
 
-[EuchreEndpoint2](https://github.com/crashka/EuchreEndpoint2) – a tighter, next-generation
-version of the current API (and server implementation?) that creates separate sessions for
-individual players (i.e. eliminates the "shadow server" model), recognizes persistent
-player identities, and provides explicit game, match, tournament, and Elo rating
-information for more advanced, context-based strategies
+### [EuchreEndpoint2](https://github.com/crashka/EuchreEndpoint2)
+
+A tighter, next-generation version of the current API (and server implementation?) that
+creates separate sessions for individual players (i.e. eliminates the "shadow server"
+model), recognizes persistent player identities, and provides explicit game, match,
+tournament, and Elo rating information for more advanced, context-based strategies
 
 ## License
 
