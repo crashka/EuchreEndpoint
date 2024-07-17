@@ -2,10 +2,10 @@
 
 ## Overview
 
-Note that sequential data (e.g. counters and lists) are all zero-based.  For UI/output
-interfaces, we may want to display "game number", "deal number", and "trick number" as
-N+1.  For other internal indexable things (e.g. card, position, suit, etc.), we will map
-to descriptive, human-friendly representations.
+Note that sequential data values (e.g. counters and lists) are all zero-based.  For UI or
+other output interfaces, we may want to display "game number", "deal number", and "trick
+number" as N+1.  For other internal indexable things (e.g. card, position, suit, etc.), we
+will map to descriptive, human-friendly representations.
 
 ## Interface Issues/Discussion
 
@@ -15,9 +15,10 @@ endpoint implementation to map the coordinator representations, if/as needed.
 
 Note that the current interface does not support keeping track of game scores, since there
 is no representation of table positions across deals (only dealer/bidding positions within
-a deal).  We will probably not take this on, since the current design is very specific to
-support for [EuchreBeta](https://github.com/crashka/EuchreBeta)—rather, we'll leave this
-to be solved by [EuchreEndpoint2](https://github.com/crashka/EuchreEndpoint2).
+a deal).  We will probably *not* take this on, since the current project and design are
+dedicated to support for [EuchreBeta](https://github.com/crashka/EuchreBeta)—instead,
+we'll leave this to be addressed by
+[EuchreEndpoint2](https://github.com/crashka/EuchreEndpoint2).
 
 ## Endpoints
 

@@ -16,7 +16,7 @@ deals and accounting for matches, tournaments, etc.
 ### API Specification
 
 This version of the API represents a "shadow server", meaning that the server sees the
-cards for all of the hands, but is only called upon the bid or play for the local player
+cards for all of the hands, but is only called upon to bid or play for the local player
 position(s) it represents.  For each move within the game (i.e. bid, card swap, defense
 declaration, or card play), the client/coordinator either notifies the server of a remote
 player's action (implemented by some other strategy), or requests an action from a local
@@ -29,7 +29,7 @@ The formal schema for the API is defined in [openapi.yaml](openapi.yaml) (OAS 3.
 specification may be viewed using the free [Swagger
 UI](https://swagger.io/tools/swagger-ui/) tool.
 
-As an overview, here is the general call sequence:
+As an overview of the API, here is the general call sequence:
 
 1. **New session notification** (POST /session)
 2. **New game notification** (POST /game)
