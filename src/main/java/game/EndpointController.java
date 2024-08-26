@@ -250,28 +250,29 @@ class EpTrick
 // ========== Data Structures ========== //
 
 // Generic - POST/PATCH response
-record EpStatus(String status, String info) {
-
+record EpStatus(String status, String info)
+{
     public EpStatus(String status) {
         this(status, null);
     }
 }
 
 // Session - POST request
-record SessionInfo(String token, String status) {
+record SessionInfo(String token, String status)
+{
 }
 
 // Session - POST response
-record SessionProto(String token, String status, int[] cards, int[] suits) {
-
+record SessionProto(String token, String status, int[] cards, int[] suits)
+{
     public SessionProto(EpSession sess) {
         this(sess.token, sess.status, sess.protocol.getCards(), sess.protocol.getSuits());
     }
 }
 
 // Session - PATCH request/response
-record SessionStatus(String token, String status, String info) {
-
+record SessionStatus(String token, String status, String info)
+{
     public SessionStatus(String token, String status) {
         this(token, status, null);
     }
@@ -282,12 +283,13 @@ record SessionStatus(String token, String status, String info) {
 }
 
 // Game - POST request
-record GameInfo(String token, int gameNum, String status) {
+record GameInfo(String token, int gameNum, String status)
+{
 }
 
 // Game - POST response, PATCH request/response
-record GameStatus(String token, int gameNum, String status, String info) {
-
+record GameStatus(String token, int gameNum, String status, String info)
+{
     public GameStatus(String token, int gameNum, String status) {
         this(token, gameNum, status, null);
     }
@@ -298,12 +300,13 @@ record GameStatus(String token, int gameNum, String status, String info) {
 }
 
 // Deal - POST request
-record DealInfo(String token, int gameNum, int dealNum, String status, int[] cards) {
+record DealInfo(String token, int gameNum, int dealNum, String status, int[] cards)
+{
 }
 
 // Deal - POST response, PATCH request/response
-record DealStatus(String token, int gameNum, int dealNum, String status, String info) {
-
+record DealStatus(String token, int gameNum, int dealNum, String status, String info)
+{
     public DealStatus(String token, int gameNum, int dealNum, String status) {
         this(token, gameNum, dealNum, status, null);
     }
@@ -315,8 +318,8 @@ record DealStatus(String token, int gameNum, int dealNum, String status, String 
 
 // Bid - GET response, POST request/response
 record BidInfo(String token, int gameNum, int dealNum, int round, int turnCard, int pos,
-               int suit, boolean alone) {
-
+               int suit, boolean alone)
+{
     public BidInfo(BidInfo bid, int suggSuit, boolean suggAlone) {
         this(bid.token, bid.gameNum, bid.dealNum, bid.round, bid.turnCard, bid.pos,
              suggSuit, suggAlone);
@@ -325,8 +328,8 @@ record BidInfo(String token, int gameNum, int dealNum, int round, int turnCard, 
 
 // Swap - GET response, POST request/response
 record SwapInfo(String token, int gameNum, int dealNum, int declarerPos, int turnCard,
-                int pos, int card) {
-
+                int pos, int card)
+{
     public SwapInfo(SwapInfo swap, int suggCard) {
         this(swap.token, swap.gameNum, swap.dealNum, swap.declarerPos, swap.turnCard,
              swap.pos, suggCard);
@@ -335,8 +338,8 @@ record SwapInfo(String token, int gameNum, int dealNum, int declarerPos, int tur
 
 // Defense - GET response, POST request/response
 record DefenseInfo(String token, int gameNum, int dealNum, int declarerPos, int trumpSuit,
-                   int pos, boolean alone) {
-
+                   int pos, boolean alone)
+{
     public DefenseInfo(DefenseInfo def, boolean suggAlone) {
         this(def.token, def.gameNum, def.dealNum, def.declarerPos, def.trumpSuit, def.pos,
              suggAlone);
@@ -344,12 +347,13 @@ record DefenseInfo(String token, int gameNum, int dealNum, int declarerPos, int 
 }
 
 // Trick - POST request
-record TrickInfo(String token, int gameNum, int dealNum, int trickNum, String status) {
+record TrickInfo(String token, int gameNum, int dealNum, int trickNum, String status)
+{
 }
 
 // Trick - POST response, PATCH request/response
-record TrickStatus(String token, int gameNum, int dealNum, int trickNum, String status, String info) {
-
+record TrickStatus(String token, int gameNum, int dealNum, int trickNum, String status, String info)
+{
     public TrickStatus(String token, int gameNum, int dealNum, int trickNum, String status) {
         this(token, gameNum, dealNum, trickNum, status, null);
     }
@@ -361,8 +365,8 @@ record TrickStatus(String token, int gameNum, int dealNum, int trickNum, String 
 
 // Play - GET response, POST request/response
 record PlayInfo(String token, int gameNum, int dealNum, int trickNum, int trickSeq,
-                int pos, int card) {
-
+                int pos, int card)
+{
     public PlayInfo(PlayInfo play, int suggCard) {
         this(play.token, play.gameNum, play.dealNum, play.trickNum, play.trickSeq,
              play.pos, suggCard);
