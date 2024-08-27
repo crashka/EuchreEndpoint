@@ -8,7 +8,6 @@ import game.DealState;
 import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
-import java.util.Random;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -137,6 +136,7 @@ class EpDeal
 {
     static final int DEALER_POS = 3;
 
+    EpGame    parent;
     String    token;
     int       gameNum;
     int       dealNum;
@@ -157,12 +157,13 @@ class EpDeal
     int       fintp;     // 4 (pass) or suit
     int       call;      // 0 - pass, 1 - call, 2 - alone
     int       cswap;
-    // bidding stuff
+    // playing stuff
     int       curTrick;  // 0-4
 
     ArrayList<EpTrick> trickList = new ArrayList<EpTrick>();
 
-    public EpDeal(DealInfo info, String status) {
+    public EpDeal(EpGame parent, DealInfo info, String status) {
+        this.parent   = parent;
         this.token    = info.token();
         this.gameNum  = info.gameNum();
         this.dealNum  = info.dealNum();
@@ -181,49 +182,56 @@ class EpDeal
         // playing stuff
         this.curTrick = -1;
 
+        // start bidding phase of the deal
         this.deal.prepareBid();
     }
 
-    public int[] GetBid(GameState gameState) {
-        int[] bidx = deal.bidder(++curBid, gameState);
-        return ProcessBid(bidx);
+    public int[] getBid() {
+        int[] bidx = deal.bidder(++curBid, parent.gameState);
+        return processBid(bidx);
     }
 
-    public int[] NotifyBid(GameState gameState, int bid) {
-        int[] bidx = deal.bidder(++curBid, gameState, bid);
-        return ProcessBid(bidx);
+    public int[] notifyBid(int suit, boolean alone) {
+        int call   = suit < 0 ? 0 : (alone ? 2 : 1);
+        int docall = call + suit * 10;
+        int[] bidx = deal.bidder(++curBid, parent.gameState, docall);
+        return processBid(bidx);
     }
 
-    public int[] ProcessBid(int[] bidx) {
-        lone     = bidx[0];  // -1 or dclr
-        declarer = bidx[1];  // -1 (pass) or dclr
-        fintp    = bidx[2];  // 4 (pass) or suit
-        call     = bidx[3];  // 0 - pass, 1 - call, 2 - alone
-        assert call == 1 || lone > -1;
+    public int[] processBid(int[] bidx) {
+        if (bidx[3] > 0) {
+            lone     = bidx[0];  // -1 or dclr
+            declarer = bidx[1];  // -1 (pass) or dclr
+            fintp    = bidx[2];  // 4 (pass) or suit
+            call     = bidx[3];  // 0 - pass, 1 - call, 2 - alone
+            assert call == 1 || lone > -1;
+        }
         return bidx;
     }
 
-    public int GetSwap() {
-        cswap = deal.preparePlay(declarer, fintp, lone, 0);
+    public int bidRound() {
+        return curBid / 4;
+    }
+
+    public int getSwap() {
+        cswap = deal.swapCard(declarer, lone, 0);
         return cswap;
     }
 
-    public int NotifySwap(int swapCard) {
-        cswap = deal.preparePlay(declarer, fintp, lone, 0, swapCard);
+    public int notifySwap(int swapCard) {
+        cswap = deal.swapCard(declarer, lone, 0, swapCard);
         return cswap;
     }
 
-    public int GetPlay(DealState dealState) {
-        return -1;
-    }
-
-    public int NotifyPlay(DealState dealState, int playCard) {
-        return -1;
+    public void startPlay() {
+        // start play phase of the deal
+        deal.preparePlay(declarer, fintp, lone, bidRound());
     }
 }
 
 class EpTrick
 {
+    EpDeal parent;
     String token;
     int    gameNum;
     int    dealNum;
@@ -234,7 +242,12 @@ class EpTrick
     int    curSeq;    // 0-3 (within trick)
     int    curPlay;   // position
 
-    public EpTrick(TrickInfo info, String status) {
+    int    leadsuit;
+    int    winpos;
+    int    winval;
+
+    public EpTrick(EpDeal parent, TrickInfo info, String status) {
+        this.parent   = parent;
         this.token    = info.token();
         this.gameNum  = info.gameNum();
         this.dealNum  = info.dealNum();
@@ -242,8 +255,68 @@ class EpTrick
         this.status   = status;  // ignore `info.status()`
 
         this.curLead  = -1;
-        this.curSeq   = -1;
+        this.curSeq   = -1;  // play sequence (0-3)
         this.curPlay  = -1;
+
+        this.leadsuit = -1;
+        this.winpos   = -1;
+        this.winval   = -1;
+
+        // establish shortcuts for this trick
+        int tr    = trickNum;
+        int curaa = parent.win[tr];  // lead (previous winner)
+        int curbb = (curaa+1)%4;     // second to play
+        int curcc = (curaa+2)%4;     // third to play
+        int curdd = (curaa+3)%4;     // fouth to play
+        parent.deal.pos[tr+1] = new int[] {curaa, curbb, curcc, curdd};
+    }
+
+    public int getPlay() {
+        return processPlay(-1);
+    }
+
+    public int notifyPlay(int playCard) {
+        return processPlay(playCard);
+    }
+
+    public int processPlay(int playCard) {
+        int tr      = trickNum;
+        int pl      = ++curSeq;
+        int playnum = tr*4+pl;
+        int curpos  = parent.deal.pos[tr+1][pl];
+        int partpos = (curpos+2)%4;
+
+        if (parent.lone == partpos) { // partner NOT going alone
+            assert false;  // we actually shouldn't be called
+            return -1;
+        }
+
+        if (playCard < 0) {
+            playCard = parent.deal.player(playnum, parent.dealState);
+        }
+        int cursuit = playCard%10;
+        int currank = playCard/10;
+        int curval  = -1;
+
+        // compute card value
+        if (cursuit == parent.fintp) {
+            curval = 10+currank;
+        } else if (leadsuit == -1) {
+            curval = currank;
+        } else if (cursuit == leadsuit) {
+            curval = currank;
+        }
+
+        // evaluate if winning
+        if (curval > winval) {
+            parent.win[tr+1] = winpos = curpos;
+            winval = curval;
+        }
+
+        if (leadsuit == -1) {
+            parent.lead[tr+1] = leadsuit = cursuit;
+        }
+        return playCard;
     }
 }
 
@@ -378,14 +451,7 @@ record PlayInfo(String token, int gameNum, int dealNum, int trickNum, int trickS
 @RestController
 public class EndpointController
 {
-    static final int RND_SEED = 1000001;
-
     HashMap<String, EpSession> sessionMap = new HashMap<String, EpSession>();
-    Random rnd = new Random();
-
-    public EndpointController() {
-        rnd.setSeed(RND_SEED);
-    }
 
     // ---------- Session ---------- //
 
@@ -420,7 +486,7 @@ public class EndpointController
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
         EpSession sess = sessionMap.get(req.token());
-        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
 
         // check request parameters
         assert req.status().equals(Status.NEW) : "bad req status: " + req.status();
@@ -437,7 +503,7 @@ public class EndpointController
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
         EpSession sess = sessionMap.get(req.token());
-        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
 
         // check request parameters
         switch (req.status()) {
@@ -467,19 +533,19 @@ public class EndpointController
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
         EpSession sess = sessionMap.get(req.token());
-        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
 
         // get game, check status
         assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
         EpGame game = sess.gameList.get(req.gameNum());
-        assert game.status.equals(Status.ACTIVE) : "bad game status: " + req.status();
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
 
         // check request parameters
         assert req.status().equals(Status.NEW) : "bad req status: " + req.status();
         assert req.dealNum() == game.dealList.size() : "bad dealNum value: " + req.dealNum();
 
         // create/add new deal
-        EpDeal deal = new EpDeal(req, Status.ACTIVE);
+        EpDeal deal = new EpDeal(game, req, Status.ACTIVE);
         game.dealList.add(deal);
         return new DealStatus(deal);
     }
@@ -489,12 +555,12 @@ public class EndpointController
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
         EpSession sess = sessionMap.get(req.token());
-        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
 
         // get game, check status
         assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
         EpGame game = sess.gameList.get(req.gameNum());
-        assert game.status.equals(Status.ACTIVE) : "bad game status: " + req.status();
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
 
         // check request parameters
         switch (req.status()) {
@@ -526,27 +592,47 @@ public class EndpointController
                           @RequestParam int round,
                           @RequestParam int turnCard,
                           @RequestParam int pos) {
-        int suit = -1;
-        boolean alone = false;
-        if (rnd.nextFloat() < 0.25) {
-            if (round == 1) {
-                suit = turnCard % 4;
-            }
-            else {
-                suit = rnd.nextInt(4);
-                if (suit == turnCard % 4) {
-                    suit = -1;
-                }
-            }
-            alone = rnd.nextFloat() < 0.1;
-        }
+        // get session, check status
+        assert sessionMap.containsKey(token) : "unknown token: " + token;
+        EpSession sess = sessionMap.get(token);
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
+
+        // get game, check status
+        assert gameNum == sess.gameList.size() - 1 : "bad gameNum value: " + gameNum;
+        EpGame game = sess.gameList.get(gameNum);
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
+
+        // get deal, check status
+        assert dealNum == game.dealList.size() - 1 : "bad dealNum value: " + dealNum;
+        EpDeal deal = game.dealList.get(dealNum);
+        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + deal.status;
+
+        int[]   bidx  = deal.getBid();
+        int     suit  = bidx[2];
+        boolean alone = bidx[3] == 2;
         return new BidInfo(token, gameNum, dealNum, round, turnCard, pos, suit, alone);
     }
 
     @PostMapping("/bid")
     public BidInfo postBid(@RequestBody BidInfo req) {
-        int suggSuit = -1;
-        boolean suggAlone = false;
+        // get session, check status
+        assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
+        EpSession sess = sessionMap.get(req.token());
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
+
+        // get game, check status
+        assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
+        EpGame game = sess.gameList.get(req.gameNum());
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
+
+        // get deal, check status
+        assert req.dealNum() == game.dealList.size() - 1 : "bad dealNum value: " + req.dealNum();
+        EpDeal deal = game.dealList.get(req.dealNum());
+        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + deal.status;
+
+        int[]   bidx      = deal.notifyBid(req.suit(), req.alone());
+        int     suggSuit  = bidx[2];
+        boolean suggAlone = bidx[3] == 2;
         return new BidInfo(req, suggSuit, suggAlone);
     }
 
@@ -560,13 +646,43 @@ public class EndpointController
                             @RequestParam int turnCard,
                             @RequestParam int pos,
                             @RequestParam List<Integer> swappableCards) {
-        int swapCard = -1;
+        // get session, check status
+        assert sessionMap.containsKey(token) : "unknown token: " + token;
+        EpSession sess = sessionMap.get(token);
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
+
+        // get game, check status
+        assert gameNum == sess.gameList.size() - 1 : "bad gameNum value: " + gameNum;
+        EpGame game = sess.gameList.get(gameNum);
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
+
+        // get deal, check status
+        assert dealNum == game.dealList.size() - 1 : "bad dealNum value: " + dealNum;
+        EpDeal deal = game.dealList.get(dealNum);
+        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + deal.status;
+
+        int swapCard = deal.getSwap();
         return new SwapInfo(token, gameNum, dealNum, declarerPos, turnCard, pos, swapCard);
     }
 
     @PostMapping("/swap")
     public SwapInfo postSwap(@RequestBody SwapInfo req) {
-        int suggCard = -1;
+        // get session, check status
+        assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
+        EpSession sess = sessionMap.get(req.token());
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
+
+        // get game, check status
+        assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
+        EpGame game = sess.gameList.get(req.gameNum());
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
+
+        // get deal, check status
+        assert req.dealNum() == game.dealList.size() - 1 : "bad dealNum value: " + req.dealNum();
+        EpDeal deal = game.dealList.get(req.dealNum());
+        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + deal.status;
+
+        int suggCard = deal.notifySwap(req.card());
         return new SwapInfo(req, suggCard);
     }
 
@@ -596,25 +712,28 @@ public class EndpointController
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
         EpSession sess = sessionMap.get(req.token());
-        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
 
         // get game, check status
         assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
         EpGame game = sess.gameList.get(req.gameNum());
-        assert game.status.equals(Status.ACTIVE) : "bad game status: " + req.status();
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
 
         // get deal, check status
         assert req.dealNum() == game.dealList.size() - 1 : "bad dealNum value: " + req.dealNum();
         EpDeal deal = game.dealList.get(req.dealNum());
-        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + req.status();
+        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + deal.status;
 
         // check request parameters
         assert req.status().equals(Status.NEW) : "bad req status: " + req.status();
         assert req.trickNum() == deal.trickList.size() : "bad trickNum value: " + req.trickNum();
 
         // create/add new trick
-        EpTrick trick = new EpTrick(req, Status.ACTIVE);
+        EpTrick trick = new EpTrick(deal, req, Status.ACTIVE);
         deal.trickList.add(trick);
+        if (req.trickNum() == 0) {
+            deal.startPlay();
+        }
         return new TrickStatus(trick);
     }
 
@@ -623,17 +742,17 @@ public class EndpointController
         // get session, check status
         assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
         EpSession sess = sessionMap.get(req.token());
-        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + req.status();
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
 
         // get game, check status
         assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
         EpGame game = sess.gameList.get(req.gameNum());
-        assert game.status.equals(Status.ACTIVE) : "bad game status: " + req.status();
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
 
         // get deal, check status
         assert req.dealNum() == game.dealList.size() - 1 : "bad dealNum value: " + req.dealNum();
         EpDeal deal = game.dealList.get(req.dealNum());
-        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + req.status();
+        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + deal.status;
 
         // check request parameters
         switch (req.status()) {
@@ -666,13 +785,53 @@ public class EndpointController
                             @RequestParam int trickSeq,
                             @RequestParam int pos,
                             @RequestParam List<Integer> playableCards) {
-        int playCard = -1;
+        // get session, check status
+        assert sessionMap.containsKey(token) : "unknown token: " + token;
+        EpSession sess = sessionMap.get(token);
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
+
+        // get game, check status
+        assert gameNum == sess.gameList.size() - 1 : "bad gameNum value: " + gameNum;
+        EpGame game = sess.gameList.get(gameNum);
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
+
+        // get deal, check status
+        assert dealNum == game.dealList.size() - 1 : "bad dealNum value: " + dealNum;
+        EpDeal deal = game.dealList.get(dealNum);
+        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + deal.status;
+
+        // get trick, check status
+        assert trickNum == deal.trickList.size() - 1 : "bad trickNum value: " + trickNum;
+        EpTrick trick = deal.trickList.get(trickNum);
+        assert trick.status.equals(Status.ACTIVE) : "bad trick status: " + trick.status;
+
+        int playCard = trick.getPlay();
         return new PlayInfo(token, gameNum, dealNum, trickNum, trickSeq, pos, playCard);
     }
 
     @PostMapping("/play")
     public PlayInfo postPlay(@RequestBody PlayInfo req) {
-        int suggCard = -1;
+        // get session, check status
+        assert sessionMap.containsKey(req.token()) : "unknown token: " + req.token();
+        EpSession sess = sessionMap.get(req.token());
+        assert sess.status.equals(Status.ACTIVE) : "bad session status: " + sess.status;
+
+        // get game, check status
+        assert req.gameNum() == sess.gameList.size() - 1 : "bad gameNum value: " + req.gameNum();
+        EpGame game = sess.gameList.get(req.gameNum());
+        assert game.status.equals(Status.ACTIVE) : "bad game status: " + game.status;
+
+        // get deal, check status
+        assert req.dealNum() == game.dealList.size() - 1 : "bad dealNum value: " + req.dealNum();
+        EpDeal deal = game.dealList.get(req.dealNum());
+        assert deal.status.equals(Status.ACTIVE) : "bad deal status: " + deal.status;
+
+        // get trick, check status
+        assert req.trickNum() == deal.trickList.size() - 1 : "bad trickNum value: " + req.trickNum();
+        EpTrick trick = deal.trickList.get(req.trickNum());
+        assert trick.status.equals(Status.ACTIVE) : "bad trick status: " + trick.status;
+
+        int suggCard = trick.notifyPlay(req.card());
         return new PlayInfo(req, suggCard);
     }
 }
