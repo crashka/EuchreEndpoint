@@ -72,6 +72,7 @@ class EpSession
     ArrayList<EpGame> gameList = new ArrayList<EpGame>();
 
     public EpSession(SessionInfo info, String status) {
+        System.out.println(String.format("EpSession(%s, %s)", info.token(), status));
         this.token    = info.token();
         this.status   = status;  // ignore `info.status()`
         this.protocol = new Protocol();
@@ -93,6 +94,7 @@ class EpGame
     ArrayList<EpDeal> dealList = new ArrayList<EpDeal>();
 
     public EpGame(GameInfo info, String status) {
+        System.out.println(String.format("EpGame(%d, %s)", info.gameNum(), status));
         this.token     = info.token();
         this.gameNum   = info.gameNum();
         this.status    = status;  // ignore `info.status()`
@@ -163,6 +165,7 @@ class EpDeal
     ArrayList<EpTrick> trickList = new ArrayList<EpTrick>();
 
     public EpDeal(EpGame parent, DealInfo info, String status) {
+        System.out.println(String.format("EpDeal(%d, %s)", info.dealNum(), status));
         this.parent   = parent;
         this.token    = info.token();
         this.gameNum  = info.gameNum();
@@ -171,7 +174,7 @@ class EpDeal
         this.cards    = info.cards();
 
         this.deal     = new Deal(this.cards, DEALER_POS);
-        DealState dealState = new DealState(win, lead, trick);
+        this.dealState = new DealState(win, lead, trick);
         // bidding stuff
         this.curBid   = -1;
         this.lone     = -1;
@@ -187,13 +190,15 @@ class EpDeal
     }
 
     public int[] getBid() {
+        System.out.println("getBid()");
         int[] bidx = deal.bidder(++curBid, parent.gameState);
         return processBid(bidx);
     }
 
     public int[] notifyBid(int suit, boolean alone) {
+        System.out.println(String.format("notifyBid(%d, %b)", suit, alone));
         int call   = suit < 0 ? 0 : (alone ? 2 : 1);
-        int docall = call + suit * 10;
+        int docall = call > 0 ? (call + suit * 10) : 0;
         int[] bidx = deal.bidder(++curBid, parent.gameState, docall);
         return processBid(bidx);
     }
@@ -214,16 +219,19 @@ class EpDeal
     }
 
     public int getSwap() {
+        System.out.println("getSwap()");
         cswap = deal.swapCard(declarer, lone, 0);
         return cswap;
     }
 
     public int notifySwap(int swapCard) {
+        System.out.println(String.format("notifySwap(%d)", swapCard));
         cswap = deal.swapCard(declarer, lone, 0, swapCard);
         return cswap;
     }
 
     public void startPlay() {
+        System.out.println("startPlay()");
         // start play phase of the deal
         deal.preparePlay(declarer, fintp, lone, bidRound());
     }
@@ -247,6 +255,7 @@ class EpTrick
     int    winval;
 
     public EpTrick(EpDeal parent, TrickInfo info, String status) {
+        System.out.println(String.format("EpTrick(%d, %s)", info.trickNum(), status));
         this.parent   = parent;
         this.token    = info.token();
         this.gameNum  = info.gameNum();
@@ -272,10 +281,12 @@ class EpTrick
     }
 
     public int getPlay() {
+        System.out.println("getPlay()");
         return processPlay(-1);
     }
 
     public int notifyPlay(int playCard) {
+        System.out.println(String.format("notifyPlay(%d)", playCard));
         return processPlay(playCard);
     }
 
