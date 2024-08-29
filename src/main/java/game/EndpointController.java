@@ -224,9 +224,9 @@ class EpDeal
         return cswap;
     }
 
-    public int notifySwap(int swapCard) {
-        System.out.println(String.format("notifySwap(%d)", swapCard));
-        cswap = deal.swapCard(declarer, lone, 0, swapCard);
+    public int notifySwap(int card) {
+        System.out.println(String.format("notifySwap(%d)", card));
+        cswap = deal.swapCard(declarer, lone, 0, card);
         return cswap;
     }
 
@@ -285,9 +285,19 @@ class EpTrick
         return processPlay(-1);
     }
 
-    public int notifyPlay(int playCard) {
-        System.out.println(String.format("notifyPlay(%d)", playCard));
-        return processPlay(playCard);
+    public int notifyPlay(int card) {
+        System.out.println(String.format("notifyPlay(%d)", card));
+        int suit = card % 4;
+        int rank = card / 4;
+        if (rank == 2) {
+            if (suit == parent.fintp) {
+                rank = 7;
+            } else if (suit == 3 - parent.fintp) {
+                rank = 6;
+                suit = parent.fintp;
+            }
+        }
+        return processPlay(suit + rank * 10);
     }
 
     public int processPlay(int playCard) {
@@ -302,9 +312,7 @@ class EpTrick
             return -1;
         }
 
-        if (playCard < 0) {
-            playCard = parent.deal.player(playnum, parent.dealState);
-        }
+        playCard = parent.deal.player(playnum, parent.dealState, playCard);
         int cursuit = playCard%10;
         int currank = playCard/10;
         int curval  = -1;
@@ -327,7 +335,14 @@ class EpTrick
         if (leadsuit == -1) {
             parent.lead[tr+1] = leadsuit = cursuit;
         }
-        return playCard;
+
+        if (currank == 7) {
+            currank = 2;
+        } else if (currank == 6) {
+            currank = 2;
+            cursuit = 3 - cursuit;
+        }
+        return cursuit + currank * 4;
     }
 }
 
