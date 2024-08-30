@@ -280,12 +280,12 @@ class EpTrick
         parent.deal.pos[tr+1] = new int[] {curaa, curbb, curcc, curdd};
     }
 
-    public int getPlay() {
+    public int getPlay(int pos, int trickSeq) {
         System.out.println("getPlay()");
-        return processPlay(-1);
+        return processPlay(pos, trickSeq, -1);
     }
 
-    public int notifyPlay(int card) {
+    public int notifyPlay(int pos, int trickSeq, int card) {
         System.out.println(String.format("notifyPlay(%d)", card));
         int suit = card % 4;
         int rank = card / 4;
@@ -297,12 +297,18 @@ class EpTrick
                 suit = parent.fintp;
             }
         }
-        return processPlay(suit + rank * 10);
+        return processPlay(pos, trickSeq, suit + rank * 10);
     }
 
-    public int processPlay(int playCard) {
+    public int processPlay(int pos, int trickSeq, int playCard) {
         int tr      = trickNum;
         int pl      = ++curSeq;
+        if (pl != trickSeq) {
+            assert pl < trickSeq;
+            System.out.println(String.format("Adjusting pl from %d to %d (pos %d)",
+                                             pl, trickSeq, pos));
+            pl = trickSeq;
+        }
         int playnum = tr*4+pl;
         int curpos  = parent.deal.pos[tr+1][pl];
         int partpos = (curpos+2)%4;
@@ -831,7 +837,7 @@ public class EndpointController
         EpTrick trick = deal.trickList.get(trickNum);
         assert trick.status.equals(Status.ACTIVE) : "bad trick status: " + trick.status;
 
-        int playCard = trick.getPlay();
+        int playCard = trick.getPlay(pos, trickSeq);
         return new PlayInfo(token, gameNum, dealNum, trickNum, trickSeq, pos, playCard);
     }
 
@@ -857,7 +863,7 @@ public class EndpointController
         EpTrick trick = deal.trickList.get(req.trickNum());
         assert trick.status.equals(Status.ACTIVE) : "bad trick status: " + trick.status;
 
-        int suggCard = trick.notifyPlay(req.card());
+        int suggCard = trick.notifyPlay(req.pos(), req.trickSeq(), req.card());
         return new PlayInfo(req, suggCard);
     }
 }
