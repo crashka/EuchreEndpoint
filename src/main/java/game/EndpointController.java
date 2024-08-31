@@ -145,6 +145,7 @@ class EpDeal
     String    status;
     int[]     cards;
 
+    int[]     cardMap;
     Deal      deal;
     // one-based indexing for subscript match (trick number), fake value for index 0
     // (first lead)
@@ -172,6 +173,10 @@ class EpDeal
         this.dealNum  = info.dealNum();
         this.status   = status;  // ignore `info.status()`
         this.cards    = info.cards();
+        this.cardMap  = new int[24];
+        for (int i = 0; i < 24; i++) {
+            this.cardMap[this.cards[i]] = i;
+        }
 
         this.deal     = new Deal(this.cards, DEALER_POS);
         this.dealState = new DealState(win, lead, trick);
@@ -225,8 +230,10 @@ class EpDeal
     }
 
     public int notifySwap(int card) {
+        int cardpos = cardMap[card];
+        assert cardpos >= 15 && cardpos <= 19;
         System.out.println(String.format("notifySwap(%d)", card));
-        cswap = deal.swapCard(declarer, lone, 0, card);
+        cswap = deal.swapCard(declarer, lone, 0, cardpos);
         return cswap;
     }
 
@@ -234,6 +241,12 @@ class EpDeal
         System.out.println("startPlay()");
         // start play phase of the deal
         deal.preparePlay(declarer, fintp, lone, bidRound());
+        // establish name of left bower
+        Game.cardname[fintp][6] = "Jack of " + Game.suitx[3-fintp];
+        deal.validateHands();
+    }
+
+    public void complete() {
     }
 }
 
@@ -307,7 +320,7 @@ class EpTrick
             assert pl < trickSeq;
             System.out.println(String.format("Adjusting pl from %d to %d (pos %d)",
                                              pl, trickSeq, pos));
-            pl = trickSeq;
+            pl = curSeq = trickSeq;
         }
         int playnum = tr*4+pl;
         int curpos  = parent.deal.pos[tr+1][pl];
@@ -319,6 +332,7 @@ class EpTrick
         }
 
         playCard = parent.deal.player(playnum, parent.dealState, playCard);
+        parent.deal.validateHands();
         int cursuit = playCard%10;
         int currank = playCard/10;
         int curval  = -1;
@@ -349,6 +363,10 @@ class EpTrick
             cursuit = 3 - cursuit;
         }
         return cursuit + currank * 4;
+    }
+
+    public void complete() {
+        parent.deal.updatePlay(trickNum);
     }
 }
 
@@ -608,6 +626,7 @@ public class EndpointController
 
         // clean up and update status, if complete
         if (req.status().equals(Status.COMPLETE)) {
+            deal.complete();
             deal.status = req.status();
             // delete reference to underlying Deal!!!
             // leave on dealList (will be cleaned up with `game`)
@@ -800,6 +819,7 @@ public class EndpointController
 
         // clean up and update status, if complete
         if (req.status().equals(Status.COMPLETE)) {
+            trick.complete();
             trick.status = req.status();
             // delete reference to underlying Trick!!!
             // leave on trickList (will be cleaned up with `deal`)
