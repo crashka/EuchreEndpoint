@@ -226,7 +226,7 @@ class EpDeal
     public int getSwap() {
         System.out.println("getSwap()");
         cswap = deal.swapCard(declarer, lone, 0);
-        return cswap;
+        return cards[20];
     }
 
     public int notifySwap(int card) {
@@ -234,7 +234,7 @@ class EpDeal
         assert cardpos >= 15 && cardpos <= 19;
         System.out.println(String.format("notifySwap(%d)", card));
         cswap = deal.swapCard(declarer, lone, 0, cardpos);
-        return cswap;
+        return cards[20];
     }
 
     public void startPlay() {
