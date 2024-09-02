@@ -83,11 +83,16 @@ JARs](https://maven.apache.org/guides/mini/guide-3rd-party-jars-local.html).
 
 ## Project Status
 
+**Current Version**
+
+- **v1.0** - Completed integration with
+  [EuchreBeta](https://github.com/crashka/EuchreBeta) (and
+  [euchre-plt](https://github.com/crashka/euchre-plt)).
+
 **To Do**
 
-- Add `/trick` endpoint to controller
-- Complete integration with [EuchreBeta](https://github.com/crashka/EuchreBeta) engine
-  v0.9
+- Complete implementation of `/defense` endpoint (if/when defending alone is added to
+  EuchreBeta).
 
 ## Related Projects
 
